@@ -11,8 +11,8 @@
 
 ## 真实边界
 
-- `typescripts/modules/photoshop/src/entry.tsx` 是公开 Photoshop React 入口；它只暴露 `globalThis.sdppp.renderPhotoshopPlugin`，真正的 UXP 宿主壳不在本仓库。
-- Photoshop 构建依赖被忽略的 `typescripts/modules/photoshop-internal` 和全局 `window.SDPPPInternal`；`plugins/photoshop/` 也没有 manifest。不要声称仅凭公开源码可重建完整 CCX。
+- `typescripts/modules/photoshop/src/entry.tsx` 是 Canvas 原生 Photoshop React 入口；`plugins/photoshop/` 提供对应的公开 UXP manifest、HTML 和启动脚本，可独立构建 `static/sd-ppp_PS.ccx`。
+- 原 SD-PPP 2.0 宿主依赖被忽略的 `typescripts/modules/photoshop-internal` 和全局 `window.SDPPPInternal`，无法由公开源码重建。`static/sd-ppp2_PS.ccx` 是保留的预编译兼容插件，承载 ComfyUI、RunningHub、OpenAI 通用格式与 Gemini 通用接口，构建和清理时不得删除或用公开 React bundle 覆盖。
 - `typescripts/modules/comfy/src/comfy-entry.mts` 是 ComfyUI Web 扩展入口；`__init__.py` 是 ComfyUI Python 包入口；`sdppp_python/sdppp.py` 挂载 `/sd-ppp/` Socket.IO 服务。
 - `typescripts/src/` 是 Photoshop 与 ComfyUI 的共享协议、Store 和工作流代码。现有 `F_photoshop`/`B_photoshop`、`F_workflow`/`B_workflow` 事件属于 SD-PPP 协议，不是 XuanshangCanvas 协议。
 - `javascript/`、`plugins/photoshop/dist/` 和 `static/*.ccx` 是构建/发行产物；常规源码改动不要手工编辑这些文件。
@@ -31,11 +31,11 @@
 
 - Node 版本由 `.nvmrc` 固定为 `v23.11.0`；包管理器使用 pnpm。
 - 每次准备创建并推送一个新提交时，先读取 `package.json` 当前版本，将补丁号递增 1，并把同一版本同步写入 `package.json` 与 `pyproject.toml`；同一次提交交付只递增一次，提交完成后仅推送已有提交时不得再次递增。
-- 版本更新后、提交或推送前运行 `pnpm build`，生成一般分发包 `sd-ppp_all.zip`；构建失败时不得继续提交或推送。该 ZIP 保持 Git 忽略，不纳入提交。
+- 版本更新后、提交或推送前运行 `pnpm build`，生成一般分发包 `sd-ppp_all.zip`；构建失败时不得继续提交或推送。该 ZIP 保持 Git 忽略，不纳入提交。构建前必须确认完整 UXP 宿主壳存在，且生成的 CCX 根目录包含 `manifest.json`；否则该包只是公开 React bundle，禁止作为 Photoshop 分发版交付。
 - `sdppp_python/version.txt` 与 `sdppp_python/version2.txt` 是协议/API 级别，不是发布版本，禁止随发布版本自动修改。
 - 开发构建使用 `pnpm dev`，即 esbuild watch，并会额外监听 `localhost:8787` 发送构建通知。它是长驻进程，只能在用户可见、关闭后可终止整棵进程树的终端中启动。
 - `pnpm tscheck` 是 TypeScript 静态检查。当前 pnpm 可能先因 `ERR_PNPM_IGNORED_BUILDS` 阻止 esbuild 安装脚本；不要把该环境错误误报为 TypeScript 错误，也不要未经确认运行交互式 `pnpm approve-builds`。
-- `pnpm build` 会编译源码、覆盖 `plugins/photoshop/dist`、重打 `static/sd-ppp_PS.ccx` 并生成 `sd-ppp_all.zip`；只在明确需要发行产物时运行。它依赖 Bash/zip，并受缺失内部 Photoshop 模块影响。
+- `pnpm build` 会编译公开源码、覆盖 `plugins/photoshop/dist`、重打 Canvas 原生 `static/sd-ppp_PS.ccx` 并生成 `sd-ppp_all.zip`；只在明确需要发行产物时运行。构建后必须同时检查 Canvas CCX 根目录的 `manifest.json`，以及一般分发包仍包含预编译兼容插件 `static/sd-ppp2_PS.ccx`。
 - 测试位于 `typescripts/test/mocha/`，通过 `SDPPPTestResolvePlugin` 注入开发 bundle 后在宿主中运行；生产构建会移除测试模块。仓库目前没有可靠的根级单测 CLI，优先对改动执行 `pnpm tscheck`，再做对应 Photoshop/ComfyUI/画布联调。
 - Python 侧没有自动化测试入口；只改 Python 时至少做相关模块语法/导入检查，但不要脱离 ComfyUI 假定 `__init__.py` 可直接导入，它依赖 `custom_nodes` 路径和 ComfyUI 的 `server`/`nodes` 模块。
 
