@@ -98,6 +98,9 @@ export const MultiImageSelector: React.FC<MultiImageSelectorProps> = ({
           return prev;
         }
         next[index] = normalized;
+        if (normalized && index === next.length - 1 && next.length < limit) {
+          next.push('');
+        }
         emitValue(next, next.length);
         return next;
       });

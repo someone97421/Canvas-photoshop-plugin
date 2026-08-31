@@ -19,7 +19,8 @@ export const WidgetableImagesWidgetSchema = z.object({
     options: z.object({
         required: z.boolean(),
         maxCount: z.number().optional(),
-        maskMode: z.boolean().optional()
+        maskMode: z.boolean().optional(),
+        '#sdppp_selector_kind': z.enum(['single-image', 'multi-image', 'local-image-pack', 'auto-image']).optional()
     })
 })
 export const WidgetableMasksWidgetSchema = z.object({

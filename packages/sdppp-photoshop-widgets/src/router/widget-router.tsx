@@ -10,7 +10,7 @@ import { MaskSelector } from '../components/selectors/MaskSelector';
 import { MultiImageSelector } from '../components/selectors/MultiImageSelector';
 import { SingleVideoSelector } from '../components/selectors/SingleVideoSelector';
 
-type SelectorKind =
+export type SelectorKind =
   | 'single-image'
   | 'multi-image'
   | 'masks'
@@ -28,7 +28,7 @@ const resolveSelectorKind = (
   widget: AnyWidget,
   extraOptions: any,
 ): SelectorKind => {
-  const override = extraOptions?.selectorKind as SelectorKind | undefined;
+  const override = (widget.options?.['#sdppp_selector_kind'] || extraOptions?.selectorKind) as SelectorKind | undefined;
   if (override) return override;
   if (widget.outputType === 'masks') return 'masks';
   if (widget.outputType === 'images') {

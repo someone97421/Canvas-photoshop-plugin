@@ -139,7 +139,8 @@ function buildWidgets(capability: CanvasImageCapability, modelId: string, values
                 uiWeight: 12,
                 options: {
                     required: Boolean(imageInput.required),
-                    maxCount: imageInput.maxCount ?? Number.POSITIVE_INFINITY,
+                    maxCount: imageInput.maxCount ?? 10,
+                    '#sdppp_selector_kind': 'multi-image',
                 },
             }],
             uiWeightSum: 12,
