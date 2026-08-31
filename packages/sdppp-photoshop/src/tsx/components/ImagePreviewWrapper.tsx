@@ -24,6 +24,12 @@ interface ImagePreviewWrapperProps {
 
 type SendMode = 'smartobject' | 'newdoc' | 'selection';
 
+function isPreviewImage(image: { url: string; fileName?: string; mimeType?: string }): boolean {
+  return isImage(image.url)
+    || Boolean(image.fileName && isImage(image.fileName))
+    || Boolean(image.mimeType?.toLowerCase().startsWith('image/'));
+}
+
 export default function ImagePreviewWrapper({ children }: ImagePreviewWrapperProps) {
   const { t } = useTranslation();
   const images = MainStore(state => state.previewImageList);
@@ -94,7 +100,7 @@ export default function ImagePreviewWrapper({ children }: ImagePreviewWrapperPro
   };
 
   const currentItem = images[normalizedIndex];
-  const isCurrentItemImage = currentItem ? isImage(currentItem.url) : false;
+  const isCurrentItemImage = currentItem ? isPreviewImage(currentItem) : false;
   const ICON_SIZE = 16;
   const SWITCH_BUTTON_SIZE = 32;
   const selectionBoundaryUri = buildSelectionBoundaryUri(currentItem?.docId);
@@ -261,7 +267,7 @@ export default function ImagePreviewWrapper({ children }: ImagePreviewWrapperPro
   const handleSendAll = async (event?: React.MouseEvent) => {
     MainStore.getState().setAutoSendSendingAll(true);
     try {
-      const imageItems = images.filter(image => isImage(image.url));
+      const imageItems = images.filter(isPreviewImage);
       if (imageItems.length === 0) {
         return;
       }
@@ -393,12 +399,12 @@ export default function ImagePreviewWrapper({ children }: ImagePreviewWrapperPro
       if (processed.has(key)) {
         continue;
       }
-      if (!item || !isImage(item.url)) {
+      if (!item || !isPreviewImage(item)) {
         processed.add(key);
         logMessage('autoMode new item ignored', {
           url: item?.url,
           resource: item?.resource,
-          isImage: item ? isImage(item.url) : false
+          isImage: item ? isPreviewImage(item) : false
         });
         continue;
       }

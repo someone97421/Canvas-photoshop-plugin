@@ -247,7 +247,13 @@ export class CanvasClient {
             id: generationNodeId,
             type: capability.nodeType,
             ui: { x: baseX + (assetNodes.length ? 360 : 0), y: baseY, label: `Photoshop · ${modelId}` },
-            data: { ...capability.defaults, ...values, provider: capability.provider.id, model: modelId },
+            data: {
+                ...capability.defaults,
+                ...values,
+                provider: capability.provider.id,
+                model: modelId,
+                inputAssetOrder: assetNodes.map((node) => node.id),
+            },
         };
         const edges: CanvasGraphEdge[] = assetNodes.map((node) => ({
             id: createId('ps-edge'), source: node.id, target: generationNodeId, sourceHandle: 'output', targetHandle: 'image',
@@ -282,14 +288,17 @@ export class CanvasClient {
                 const primaryId = completed.result?.primaryOutputAssetId;
                 const orderedIds = primaryId ? [primaryId, ...outputIds.filter((id) => id !== primaryId)] : outputIds;
                 if (!orderedIds.length) throw new Error('Canvas 任务成功，但没有返回图片资产');
-                return orderedIds.map((assetId) => {
+                return Promise.all(orderedIds.map(async (assetId) => {
                     const index = outputIds.indexOf(assetId);
                     const outputPath = index >= 0 ? completed.result?.outputPaths[index] : undefined;
+                    const outputAsset = outputPath ? undefined : await this.getAsset(projectId, assetId).catch(() => undefined);
+                    const fileName = outputPath ? outputPath.split(/[\\/]/).pop() : outputAsset?.filename;
+                    const outputUrl = `${this.baseUrl}/outputs/${encodeURIComponent(projectId)}/${encodeURIComponent(assetId)}`;
                     return {
-                        url: `${this.baseUrl}/outputs/${encodeURIComponent(projectId)}/${encodeURIComponent(assetId)}`,
-                        fileName: outputPath ? outputPath.split(/[\\/]/).pop() : undefined,
+                        url: fileName ? `${outputUrl}?filename=${encodeURIComponent(fileName)}` : outputUrl,
+                        fileName,
                     };
-                });
+                }));
             },
             canceler: async (taskId) => {
                 await this.request(`/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
@@ -312,6 +321,10 @@ export class CanvasClient {
 
     private getTask(projectId: string, taskId: string): Promise<CanvasTaskData> {
         return this.request(`/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}`);
+    }
+
+    private getAsset(projectId: string, assetId: string): Promise<CanvasAsset> {
+        return this.request(`/api/projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}`);
     }
 
     private statusMessage(task: CanvasTaskData): string {

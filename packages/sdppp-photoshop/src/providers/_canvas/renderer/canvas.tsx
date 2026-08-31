@@ -21,6 +21,7 @@ import { canvasStore } from './canvas.store';
 
 const { Text } = Typography;
 const REFERENCE_IMAGES_FIELD = '__canvasReferenceImages';
+const COMMON_FIELDS = new Set([REFERENCE_IMAGES_FIELD, 'prompt']);
 
 function selectionKey(nodeType: string, modelId: string): string {
     return `${nodeType}::${modelId}`;
@@ -159,8 +160,8 @@ function buildWidgets(capability: CanvasImageCapability, modelId: string, values
 
 export default function CanvasRenderer({ showingPreview }: { showingPreview: boolean }) {
     const {
-        backendUrl, projectId, providerId, nodeType, modelId, projects, capabilities, valuesByModel,
-        setBackendUrl, setProjectId, setSelection, setCatalog, setValues,
+        backendUrl, projectId, providerId, nodeType, modelId, projects, capabilities, commonValuesByProject, valuesByModel,
+        setBackendUrl, setProjectId, setSelection, setCatalog, setCommonValues, setValues,
     } = canvasStore();
     const [draftUrl, setDraftUrl] = useState(backendUrl);
     const [status, setStatus] = useState('');
@@ -228,10 +229,24 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
     const selectedModelKey = nodeType && modelId ? selectionKey(nodeType, modelId) : '';
     const valuesKey = projectId && selectedModelKey ? `${projectId}::${selectedModelKey}` : '';
     const values = selectedCapability
-        ? { ...defaultValues(selectedCapability, modelId), model: modelId, ...(valuesByModel[valuesKey] || {}) }
+        ? {
+            ...defaultValues(selectedCapability, modelId),
+            model: modelId,
+            ...(valuesByModel[valuesKey] || {}),
+            ...(commonValuesByProject[projectId] || {}),
+        }
         : {};
 
+    const preserveCommonValues = () => {
+        if (!projectId) return;
+        const currentCommonValues = Object.fromEntries(
+            Object.entries(values).filter(([name]) => COMMON_FIELDS.has(name)),
+        );
+        setCommonValues(projectId, currentCommonValues);
+    };
+
     const changeProvider = (nextProviderId: string) => {
+        preserveCommonValues();
         const capability = capabilities.find((item) => item.provider.id === nextProviderId);
         const firstModel = capability ? modelIds(capability)[0]?.id || '' : '';
         setSelection(nextProviderId, capability?.nodeType || '', firstModel);
@@ -243,7 +258,10 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
         const nextNodeType = value.slice(0, separator);
         const nextModelId = value.slice(separator + 2);
         const capability = capabilities.find((item) => item.nodeType === nextNodeType);
-        if (capability) setSelection(capability.provider.id, nextNodeType, nextModelId);
+        if (capability) {
+            preserveCommonValues();
+            setSelection(capability.provider.id, nextNodeType, nextModelId);
+        }
     };
 
     if (showingPreview) return null;
@@ -294,6 +312,7 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
                                 modelId={modelId}
                                 values={values}
                                 valuesKey={valuesKey}
+                                setCommonValues={setCommonValues}
                                 setValues={setValues}
                             />
                         </WidgetableProvider>
@@ -311,10 +330,13 @@ interface CanvasGenerationFormProps {
     modelId: string;
     values: Record<string, unknown>;
     valuesKey: string;
+    setCommonValues: (projectId: string, values: Record<string, unknown>) => void;
     setValues: (key: string, values: Record<string, unknown>) => void;
 }
 
-function CanvasGenerationForm({ client, projectId, capability, modelId, values, valuesKey, setValues }: CanvasGenerationFormProps) {
+function CanvasGenerationForm({
+    client, projectId, capability, modelId, values, valuesKey, setCommonValues, setValues,
+}: CanvasGenerationFormProps) {
     const [error, setError] = useState('');
     const [status, setStatus] = useState('');
     const [progress, setProgress] = useState(0);
@@ -336,7 +358,12 @@ function CanvasGenerationForm({ client, projectId, capability, modelId, values, 
             await waitAllUploadPasses(runController.signal);
             await new Promise((resolve) => setTimeout(resolve, 100));
             if (runController.signal.aborted) throw new DOMException('Generation cancelled', 'AbortError');
-            const liveValues = { ...values, ...(canvasStore.getState().valuesByModel[valuesKey] || {}) };
+            const storeState = canvasStore.getState();
+            const liveValues = {
+                ...values,
+                ...(storeState.valuesByModel[valuesKey] || {}),
+                ...(storeState.commonValuesByProject[projectId] || {}),
+            };
             const referenceValue = liveValues[REFERENCE_IMAGES_FIELD];
             const assetIds = (Array.isArray(referenceValue) ? referenceValue : [referenceValue])
                 .map((item) => typeof item === 'string' ? item : (item as { url?: string } | null)?.url || '')
@@ -409,8 +436,18 @@ function CanvasGenerationForm({ client, projectId, capability, modelId, values, 
                 values={values}
                 errors={{}}
                 onWidgetChange={(_widgetIndex, value, fieldInfo) => {
-                    const live = { ...values, ...(canvasStore.getState().valuesByModel[valuesKey] || {}) };
-                    setValues(valuesKey, { ...live, [fieldInfo.id]: value });
+                    const state = canvasStore.getState();
+                    if (COMMON_FIELDS.has(fieldInfo.id)) {
+                        setCommonValues(projectId, {
+                            ...(state.commonValuesByProject[projectId] || {}),
+                            [fieldInfo.id]: value,
+                        });
+                        return;
+                    }
+                    setValues(valuesKey, {
+                        ...(state.valuesByModel[valuesKey] || {}),
+                        [fieldInfo.id]: value,
+                    });
                 }}
             />
             {error && <Alert type="error" showIcon message={error} />}
