@@ -237,11 +237,12 @@ export class CanvasClient {
         const baseX = graph.nodes.length ? rightmost + 360 : 80;
         const baseY = graph.nodes.reduce((max, node) => Math.max(max, Number(node.ui?.y) || 0), 80);
         const generationNodeId = createId('ps-generation');
-        const assetNodes: CanvasGraphNode[] = assetIds.map((assetId, index) => ({
+        const assets = await Promise.all(assetIds.map((assetId) => this.getAsset(projectId, assetId)));
+        const assetNodes: CanvasGraphNode[] = assets.map((asset, index) => ({
             id: createId('ps-asset'),
             type: 'image-asset',
             ui: { x: baseX, y: baseY + index * 220, label: `Photoshop 参考图 ${index + 1}` },
-            data: { assetId, filename: `photoshop-reference-${index + 1}.png`, status: 'ready' },
+            data: { assetId: asset.id, filename: asset.filename, status: asset.status },
         }));
         const generationNode: CanvasGraphNode = {
             id: generationNodeId,
@@ -256,7 +257,7 @@ export class CanvasClient {
             },
         };
         const edges: CanvasGraphEdge[] = assetNodes.map((node) => ({
-            id: createId('ps-edge'), source: node.id, target: generationNodeId, sourceHandle: 'output', targetHandle: 'image',
+            id: createId('ps-edge'), source: node.id, target: generationNodeId,
         }));
         await this.request(`/api/projects/${encodeURIComponent(projectId)}/graph/items`, {
             method: 'POST',
