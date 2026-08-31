@@ -4,5 +4,7 @@ typescripts/photoshop-internal
 typescripts/modules/photoshop-internal
 __pycache__
 sd-ppp_all.zip
+packages/sdppp-photoshop/plugin/webview/
+packages/sdppp-photoshop/src/providers/test/testoutput/
 .uxprc
 .DS_Store

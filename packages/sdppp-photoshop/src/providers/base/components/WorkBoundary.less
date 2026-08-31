@@ -1,0 +1,140 @@
+.work-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.work-boundary-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sdppp-host-text-color);
+  user-select: none;
+}
+
+.work-boundary-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  position: relative;
+}
+
+.work-boundary-size {
+  margin-right: 8px;
+  font-size: 11px; // match boundary name font size
+  line-height: 1.2;
+  display: inline-block;
+  color: var(--sdppp-host-text-color-secondary);
+}
+
+.work-boundary-thumbnail {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+
+  img {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--sdppp-widget-border-color);
+    background: var(--sdppp-widget-background-color);
+  }
+}
+
+.work-boundary-large-preview {
+  img {
+    max-width: 300px;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    display: block;
+  }
+}
+
+.work-boundary-name {
+  font-size: 11px;
+  color: var(--sdppp-host-text-color-secondary);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.work-boundary-edit-icon {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--sdppp-host-text-color-secondary);
+  display: flex;
+  align-items: center;
+  animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.boundary-thumbnail-image {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--sdppp-widget-border-color);
+  background: var(--sdppp-widget-background-color);
+}
+
+.boundary-thumbnail-placeholder {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sdppp-widget-background-color);
+  border: 1px dashed var(--sdppp-widget-border-color);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--sdppp-host-text-color-secondary);
+}
+
+.boundary-thumbnail-loading {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sdppp-widget-background-color);
+  border: 1px solid var(--sdppp-widget-border-color);
+  border-radius: 4px;
+}
+
+.boundary-thumbnail-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--sdppp-widget-border-color);
+  border-top: 2px solid var(--sdppp-host-text-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Note: Theme support is handled automatically by SDPPP CSS variables
+// The component will adapt to all Photoshop themes (darkest, dark, light, lightest)

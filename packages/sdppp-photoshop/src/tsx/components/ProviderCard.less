@@ -1,0 +1,161 @@
+.provider-card {
+    display: flex;
+    align-items: stretch;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    height: 120px;
+    margin-bottom: 16px;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    // Logo区域 - 左侧
+    .provider-logo-section {
+        width: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    // 内容区域 - 右侧
+    .provider-content-section {
+        flex: 1;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+
+        // 黑色遮罩层
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+            border-radius: 0 12px 12px 0;
+        }
+
+    }
+
+    &:hover .provider-content-section {
+        &::before {
+            background: rgba(0, 0, 0, 0.3);
+        }
+    }
+
+    .provider-icon {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .provider-icon-fallback {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+        }
+    }
+
+    .provider-name {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #fff;
+        position: relative;
+        z-index: 1;
+    }
+
+    .provider-description {
+        font-size: 13px;
+        line-height: 1.4;
+        opacity: 0.8;
+        color: #fff;
+        position: relative;
+        z-index: 1;
+    }
+
+    // 选中状态
+    &.selected {
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+
+        &::before {
+            content: '✓';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 2;
+        }
+    }
+}
+
+// Dynamic provider colors are now handled in TSX via brandColor
+.provider-card {
+    .provider-logo-section {
+        border-radius: 12px 0 0 12px;
+    }
+
+    .provider-content-section {
+        border-radius: 0 12px 12px 0;
+
+        &::before {
+            border-radius: 0 12px 12px 0;
+        }
+    }
+}
+
+// ProviderCardSelector样式
+.provider-card-selector {
+    .provider-card-selector-title {
+        font-size: 14px;
+        color: var(--sdppp-host-text-color-secondary);
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .provider-card-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+}

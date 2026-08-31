@@ -1,0 +1,55 @@
+:root {
+}
+#app.__ps_darkest__ {
+    --sdppp-host-background-color: #191919;
+    --sdppp-host-text-color: #fff;
+    --sdppp-host-text-color-secondary: #adadad;
+    --sdppp-widget-hover-text-color: #efefef;
+    --sdppp-widget-background-color: #1a1a1a;
+    --sdppp-widget-hover-background-color: #080808;
+    --sdppp-widget-border-color: #5c5c5c;
+}
+#app.__ps_dark__ {
+    --sdppp-host-background-color: #282828;
+    --sdppp-host-text-color: #fff;
+    --sdppp-host-text-color-secondary: #d6d6d6;
+    --sdppp-widget-hover-text-color: #efefef;
+    --sdppp-widget-background-color: #1f1f1f;
+    --sdppp-widget-hover-background-color: #252525;
+    --sdppp-widget-border-color: #6e6e6e;
+}
+#app.__ps_light__ {
+    --sdppp-host-background-color: #6c6c6c;
+    --sdppp-host-text-color: #fff;
+    --sdppp-host-text-color-secondary: #d6d6d6;
+    --sdppp-widget-hover-text-color: #efefef;
+    --sdppp-widget-background-color: #8d8d8d;
+    --sdppp-widget-hover-background-color: #7d7d7d;
+    --sdppp-widget-border-color: #c3c3c3;
+}
+#app.__ps_lightest__ {
+    --sdppp-host-background-color: #939393;
+    
+    --sdppp-host-text-color: #000000;
+    --sdppp-host-text-color-secondary: #333333;
+    --sdppp-widget-hover-text-color: #323232;
+    --sdppp-widget-background-color: #d0d0d0;
+    --sdppp-widget-hover-background-color: #c8c8c8;
+    --sdppp-widget-border-color: #bcbcbc;
+}
+
+#app {
+    background-color: var(--sdppp-host-background-color);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-width: none;
+
+    .app-select {
+        margin-bottom: 8px;
+    }
+}

@@ -1,0 +1,50 @@
+{
+  "name": "sdppp-photoshop",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@sdppp/ui-library": "workspace:*",
+    "@sdppp/resourcing": "workspace:*",
+    "@sdppp/vite-remote-config-loader": "workspace:*",
+    "@sdppp/widgetable-ui": "workspace:*",
+    "@sdppp/common": "workspace:*",
+    "@tanstack/react-query": "^5.80.2",
+    "antd": "^5.25.4",
+    "lucide-react": "^0.553.0",
+    "openai": "^4.67.1",
+    "sdppp-photoshop-widgets": "workspace:*",
+    "buffer": "^6.0.3",
+    "debug": "^4.4.1",
+    "liblibai": "^0.0.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "replicate": "^1.0.1",
+    "uuid": "^11.1.0",
+    "vite-plugin-singlefile": "^2.3.0",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.5",
+    "@google/genai": "1.20.0"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/node": "^20.11.24",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.5.0",
+    "archiver": "^7.0.1",
+    "@welldone-software/why-did-you-render": "^7.0.1",
+    "less": "^4.3.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.1.4"
+  }
+}

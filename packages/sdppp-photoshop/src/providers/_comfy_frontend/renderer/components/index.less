@@ -1,0 +1,49 @@
+// Workflow List styles
+.workflow-list {
+  padding: 16px;
+  
+  &__main {
+    margin-bottom: 16px;
+  }
+  
+  &__special {
+    margin-bottom: 16px;
+  }
+  
+  &__autorun {
+    margin-top: 16px;
+    padding: 8px 12px;
+    background-color: #f6ffed;
+    border: 1px solid #b7eb8f;
+    border-radius: 6px;
+    
+    .autorun-desc {
+      font-size: 12px;
+      color: #52c41a;
+    }
+  }
+}
+
+// Ant Design overrides for workflow list
+.workflow-list {
+  .ant-list {
+    background: transparent;
+    
+    .ant-list-item {
+      border-radius: 6px;
+      margin-bottom: 4px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+  
+  .ant-divider {
+    margin: 16px 0;
+  }
+  
+  .ant-alert {
+    margin-bottom: 16px;
+  }
+}

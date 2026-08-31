@@ -1,0 +1,112 @@
+.workflow-list-item {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  &__left {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0; // 允许flex子项收缩
+    overflow: hidden; // 隐藏溢出内容
+  }
+  
+  &__right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; // 防止右侧内容被压缩
+  }
+}
+
+// 确保 WorkflowActions 中的按钮正确显示
+.workflow-list-item {
+  .ant-list-item-actions {
+    .ant-space {
+      display: flex;
+      align-items: center;
+      
+      .ant-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 24px;
+        padding: 0 4px;
+      }
+    }
+  }
+}
+
+// DirectoryTree styles
+.workflow-list__main {
+  .ant-tree-switcher {
+    width: 12px !important;
+    flex: 0 0 12px !important;
+    margin-right: 4px !important;
+  }
+
+  .ant-tree-node-content-wrapper {
+    font-size: 14px !important;
+    padding: 2px 0 !important;
+    min-height: 24px !important;
+    line-height: 20px !important;
+  }
+
+  .ant-tree-title {
+    font-size: 14px !important;
+  }
+
+  .ant-tree-treenode {
+    padding: 2px 0 !important;
+  }
+
+  .ant-tree-indent-unit {
+    width: 12px !important;
+  }
+}
+
+// Ant Design overrides for workflow list item
+.workflow-list-item {
+  .ant-list-item {
+    padding: 8px 16px;
+
+    // 确保 actions 区域可见
+    .ant-list-item-actions {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+  }
+  
+  .ant-btn {
+    border-radius: 4px;
+    
+    &.ant-btn-text {
+      color: var(--sdppp-host-text-color);
+    }
+  }
+  
+  .ant-space {
+    gap: 4px !important;
+    width: 100%;
+    overflow: hidden;
+    
+    .ant-typography {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  
+  .ant-typography {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}

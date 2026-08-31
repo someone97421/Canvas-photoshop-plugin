@@ -1,0 +1,39 @@
+{
+  "name": "@sdppp/vite-remote-config-loader",
+  "version": "1.0.0",
+  "description": "A Vite plugin for loading remote JSON configuration files with intelligent fallback strategy",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./src/index.ts"
+    },
+    "./vite": {
+      "types": "./vite.d.ts",
+      "import": "./src/vite.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+  },
+  "keywords": [
+    "vite",
+    "plugin",
+    "remote",
+    "config",
+    "json",
+    "typescript",
+    "fallback"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "vite": "^6.3.5"
+  }
+}

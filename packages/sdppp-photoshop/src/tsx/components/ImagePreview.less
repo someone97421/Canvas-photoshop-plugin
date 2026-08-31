@@ -1,0 +1,356 @@
+.image-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background-color: var(--sdppp-widget-background-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+
+  // 关闭按钮样式
+  &__close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 20;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    color: white;
+    opacity: 0;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.6) !important;
+      color: white !important;
+      transform: scale(1.1);
+    }
+
+    .anticon {
+      font-size: 12px;
+    }
+  }
+
+  // hover时显示关闭按钮
+  &:hover &__close-btn {
+    opacity: 1;
+  }
+
+  &__container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // 当支持aspect-ratio时，容器使用相对定位
+  @supports (aspect-ratio: 1) {
+    &__container {
+      position: relative;
+    }
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .ant-image {
+      width: 100%;
+      height: 100%;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .ant-image-img {
+      max-width: 100% !important;
+      max-height: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain !important;
+      display: block !important;
+    }
+  }
+
+  &__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+
+    &--prev {
+      left: 8px;
+    }
+
+    &--next {
+      right: 8px;
+    }
+  }
+
+  // hover时显示导航按钮
+  &:hover &__nav {
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  &__indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  // hover时显示指示器
+  &:hover &__indicator {
+    opacity: 1;
+  }
+
+  // 发送到PS按钮样式
+  &__send-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    min-width: 80px;
+    height: 32px;
+    border-radius: 16px;
+    font-weight: 500;
+    font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  // hover时显示按钮
+  &:hover &__send-btn {
+    opacity: 1;
+  }
+
+  // 左下角悬浮按钮组样式
+  &__floating-buttons {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  // hover时显示悬浮按钮组
+  &:hover &__floating-buttons {
+    opacity: 1;
+  }
+
+  &__floating-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.8) !important;
+      transform: scale(1.1);
+    }
+
+    .anticon {
+      font-size: 16px;
+    }
+  }
+
+  // 右侧中间按钮组样式
+  &__right-buttons {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+
+    .image-preview__nav {
+      position: static;
+      transform: none;
+      opacity: 1;
+    }
+
+    .image-preview__floating-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.8) !important;
+        transform: scale(1.1);
+      }
+
+      .anticon {
+        font-size: 16px;
+      }
+    }
+  }
+
+  // hover时显示右侧按钮组
+  &:hover &__right-buttons {
+    opacity: 1;
+  }
+
+  // 图片加载状态
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--sdppp-host-text-color-secondary);
+  }
+
+  // 底部悬浮按钮样式
+
+  &__bottom-delete-current {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-68px);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.8) !important;
+      color: white !important;
+    }
+  }
+
+  &__bottom-send,
+  &__bottom-save {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(4px);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  &__bottom-send {
+    box-shadow: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__switch-button {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 0;
+
+    .ant-btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &__bottom-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    z-index: 10;
+    opacity: 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.8) !important;
+      transform: scale(1.05);
+    }
+
+    .anticon {
+      font-size: 1em;
+      opacity: 0.85;
+      position: relative;
+      top: 1px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .anticon > svg {
+      display: block;
+      vertical-align: middle;
+    }
+  }
+
+  // hover时显示底部按钮
+  &:hover &__bottom-delete-current,
+  &:hover &__bottom-send,
+  &:hover &__bottom-save,
+  &:hover &__bottom-indicator {
+    opacity: 1;
+  }
+} 

@@ -1,11 +1,11 @@
 {
   "name": "canvas-photoshop-plugin",
-  "version": "2.0.2",
+  "version": "2.0.4",
   "type": "module",
   "scripts": {
     "tscheck": "cd typescripts && tsc --noEmit",
-    "build": "cross-env NODE_ENV=production node typescripts/_build/esbuild.ts && bash typescripts/_build/package-ccx.sh && bash typescripts/_build/package-all.sh",
-    "dev": "cross-env NODE_ENV=development node typescripts/_build/esbuild.ts --watch"
+    "build": "node build/build.js",
+    "dev": "cross-env NODE_ENV=development pnpm --filter '*' --parallel dev"
   },
   "devDependencies": {
     "@types/chai": "^5.0.1",
@@ -20,9 +20,11 @@
     "esbuild-plugin-external-global": "^1.0.1",
     "glob": "^11.0.1",
     "typescript": "^5.5.4",
+    "vite": "^6.3.5",
     "ws": "^8.18.1"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "antd": "^5.24.7",
     "chai": "^5.1.2",
     "fast-json-patch": "^3.1.1",

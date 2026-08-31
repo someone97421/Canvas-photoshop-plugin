@@ -1,0 +1,38 @@
+.comfy-frontend-renderer {
+    align-items: stretch;
+}
+
+.workflow-list-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 8px 12px;
+    flex-wrap: nowrap;
+    display: flex;
+    align-items: center;
+
+    a {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &:hover {
+        border-left: 5px solid var(--sdppp-host-text-color);
+        padding-left: 4px;
+        background-color: rgba(255, 255, 255, 0.05);
+
+        .workflow-arrow {
+            color: var(--sdppp-host-text-color);
+        }
+    }
+
+    .workflow-arrow {
+        color: var(--sdppp-host-text-color-secondary);
+        font-size: 12px;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        margin-left: 8px;
+    }
+}
