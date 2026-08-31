@@ -73,7 +73,7 @@ export const Providers = {
         metadata: {
             id: 'Canvas',
             name: 'Xuanshang Canvas',
-            description: '连接画布项目中的已有节点并将生成结果送回 Photoshop',
+            description: '使用画布已配置的模型创建生成节点、运行任务并将结果送回 Photoshop',
             brandColor: '#6f5cff',
             logoPath: ''
         }

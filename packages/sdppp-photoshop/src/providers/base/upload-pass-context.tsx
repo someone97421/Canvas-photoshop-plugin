@@ -4,9 +4,12 @@ import { z } from 'zod';
 import { createStore } from 'zustand';
 
 const uploadImageInputSchema = z.object({
-  type: z.literal('buffer').or(z.literal('token')),
-  tokenOrBuffer: z.any(),
+  type: z.literal('buffer').or(z.literal('token')).or(z.literal('resource')),
+  tokenOrBuffer: z.any().optional(),
+  resource: z.string(),
+  resourceId: z.string().optional(),
   fileName: z.string(),
+  mimeType: z.string().optional(),
 });
 export type UploadPassInput = z.infer<typeof uploadImageInputSchema>;
 
@@ -21,7 +24,7 @@ interface UploadPassContextType {
   addUploadPass: (pass: UploadPass) => string;
   removeUploadPass: (pass: UploadPass) => void;
   cancelAllUploads: () => void;
-  waitAllUploadPasses: () => Promise<void>;
+  waitAllUploadPasses: (signal?: AbortSignal) => Promise<void>;
 }
 
 const UploadPassContext = createContext<UploadPassContextType | undefined>(undefined);
@@ -106,14 +109,16 @@ export function UploadPassProvider({ children, uploader }: UploadPassProviderPro
         return state;
       });
     },
-    waitAllUploadPasses: async () => {
+    waitAllUploadPasses: async (signal?: AbortSignal) => {
       if (!uploader) {
         throw new Error(t('upload_pass.error.uploader_missing', { defaultValue: 'Uploader not set' }));
       }
       const promisesFromUploadPasses = uploadPassesStore.getState().uploadPasses.map(async pass => {
         try {
-          const uploadInput = await pass.getUploadFile();
-          const fileURL = await uploader(uploadInput);
+          if (signal?.aborted) throw new DOMException('Upload aborted', 'AbortError');
+          const uploadInput = await pass.getUploadFile(signal);
+          const fileURL = await uploader(uploadInput, signal);
+          if (signal?.aborted) throw new DOMException('Upload aborted', 'AbortError');
           if (pass.onUploaded) {
             await pass.onUploaded(fileURL);
           }

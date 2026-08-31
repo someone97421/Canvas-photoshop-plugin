@@ -72,8 +72,8 @@ async function packagePSCCX() {
 
     console.log(`压缩完成，文件大小: ${(archive.pointer() / 1024 / 1024).toFixed(2)} MB`);
     await copyFile(zipPath, ccxPath);
-    await unlink(zipPath);
     console.log('复制完成: sd-ppp2_PS.zip -> sd-ppp2_PS.ccx');
+    console.log('便捷安装调试包已保留: static/sd-ppp2_PS.zip');
     console.log('打包完成！');
     
   } catch (error) {

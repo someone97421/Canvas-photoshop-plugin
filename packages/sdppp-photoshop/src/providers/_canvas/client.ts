@@ -8,16 +8,98 @@ export interface CanvasProject {
     updatedAt: number;
 }
 
+export interface CanvasProvider {
+    id: string;
+    name: string;
+    description?: string;
+    supportedTypes: Array<'image' | 'video' | 'audio'>;
+}
+
+export interface CanvasModel {
+    id: string;
+    name: string;
+    description?: string;
+}
+
+export interface CanvasSchemaProperty {
+    type: string;
+    default?: unknown;
+    ui?: {
+        widget?: string;
+        label?: string;
+        placeholder?: string;
+        rows?: number;
+        min?: number;
+        max?: number;
+        step?: number;
+        options?: Array<{ label: string; value: string | number }>;
+        dependencies?: {
+            field: string;
+            mapping: Record<string, Array<{ label: string; value: string | number }>>;
+        };
+    };
+}
+
+export interface CanvasNodeDefinition {
+    id: string;
+    name: string;
+    description?: string;
+    inputs: Array<{ id: string; name: string; type: string; required?: boolean; maxCount?: number }>;
+    outputs: Array<{ id: string; name: string; type: string }>;
+    dataSchema: { properties?: Record<string, CanvasSchemaProperty> };
+}
+
+export interface CanvasImageCapability {
+    nodeType: string;
+    provider: CanvasProvider;
+    models: CanvasModel[];
+    definition: CanvasNodeDefinition;
+    defaults?: Record<string, unknown>;
+    documentedModels?: CanvasDocumentedModel[];
+}
+
+export interface CanvasDocumentedModel {
+    id: string;
+    label: string;
+    parameterMode?: 'pixel-size' | 'resolution-ratio';
+    resolutionSizes?: Record<string, Record<string, string>>;
+    resolutionRatios?: Record<string, string[]>;
+    defaultResolution?: string;
+    qualityOptions?: string[];
+    defaultQuality?: string;
+    responseFormats?: string[];
+    supportsCustomSize?: boolean;
+}
+
 export interface CanvasGraphNode {
     id: string;
     type: string;
-    ui: { label?: string };
+    ui: { x: number; y: number; label?: string };
     data: Record<string, unknown>;
 }
 
 export interface CanvasProjectGraph {
     projectId: string;
     nodes: CanvasGraphNode[];
+    edges: CanvasGraphEdge[];
+}
+
+export interface CanvasGraphEdge {
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+}
+
+export interface CanvasAsset {
+    id: string;
+    projectId: string;
+    filename: string;
+    originalName?: string;
+    mimeType?: string;
+    status: 'processing' | 'ready' | 'failed';
+    error?: string;
 }
 
 export interface CanvasTaskData {
@@ -43,17 +125,32 @@ interface CanvasResponse<T> {
     errors?: Array<{ message?: string }>;
 }
 
+interface CanvasUploadInput {
+    type: 'buffer' | 'token' | 'resource';
+    tokenOrBuffer?: unknown;
+    resource?: string;
+    resourceId?: string;
+    fileName: string;
+    mimeType?: string;
+}
+
 function normalizeBaseUrl(value: string): string {
     const url = value.trim().replace(/\/+$/, '');
-    if (!/^https?:\/\//i.test(url)) {
-        throw new Error('后端地址必须以 http:// 或 https:// 开头');
-    }
+    if (!/^https?:\/\//i.test(url)) throw new Error('后端地址必须以 http:// 或 https:// 开头');
     return url;
 }
 
 function errorMessage(body: CanvasResponse<unknown>, status?: number): string {
     const details = body.errors?.map((item) => item.message).filter(Boolean).join('；');
     return details || body.error || `Canvas 请求失败${status ? ` (${status})` : ''}`;
+}
+
+function createId(prefix: string): string {
+    return `${prefix}-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+}
+
+function encodeResourceToken(resource: string): string {
+    return btoa(resource);
 }
 
 export class CanvasClient {
@@ -76,7 +173,6 @@ export class CanvasClient {
             body: init?.body,
             bodyType: init?.body ? 'json' : undefined,
         }, init?.signal);
-
         const body = result.data as CanvasResponse<T> | undefined;
         if (!result.success || !body || body.success === false) {
             throw new Error(body ? errorMessage(body, result.status) : result.error || `Canvas 请求失败 (${result.status || 0})`);
@@ -86,13 +182,9 @@ export class CanvasClient {
 
     async getStatus(signal?: AbortSignal): Promise<{ status: string; version?: string }> {
         const result = await sdpppSDK.plugins.photoshop.proxiedFetch({
-            url: `${this.baseUrl}/api/system/status`,
-            method: 'GET',
-            headers: { Accept: 'application/json' },
+            url: `${this.baseUrl}/api/system/status`, method: 'GET', headers: { Accept: 'application/json' },
         }, signal);
-        if (!result.success || result.data?.status !== 'ok') {
-            throw new Error(result.error || `Canvas 连接失败 (${result.status || 0})`);
-        }
+        if (!result.success || result.data?.status !== 'ok') throw new Error(result.error || `Canvas 连接失败 (${result.status || 0})`);
         return result.data;
     }
 
@@ -100,21 +192,78 @@ export class CanvasClient {
         return this.request('/api/projects');
     }
 
+    createProject(name = 'Photoshop 生成'): Promise<CanvasProject> {
+        return this.request('/api/projects', { method: 'POST', body: { name, description: '由 SD-PPP Photoshop 插件创建' } });
+    }
+
     getProjectGraph(projectId: string): Promise<CanvasProjectGraph> {
         return this.request(`/api/projects/${encodeURIComponent(projectId)}/graph`);
     }
 
-    async listImageNodeTypes(): Promise<Set<string>> {
-        const capabilities = await this.request<Array<{ nodeType: string }>>('/api/providers/image-capabilities');
-        return new Set(capabilities.map((item) => item.nodeType));
+    listImageCapabilities(): Promise<CanvasImageCapability[]> {
+        return this.request('/api/providers/image-capabilities');
+    }
+
+    async uploadAsset(projectId: string, input: CanvasUploadInput, signal?: AbortSignal): Promise<CanvasAsset> {
+        const resource = input.resource || input.resourceId || (typeof input.tokenOrBuffer === 'string' ? input.tokenOrBuffer : '');
+        if (!resource) throw new Error('无法读取 Photoshop 图片资源');
+        const result = await sdpppSDK.plugins.photoshop.proxiedFetch({
+            url: `${this.baseUrl}/api/projects/${encodeURIComponent(projectId)}/assets`,
+            method: 'POST',
+            headers: { Accept: 'application/json' },
+            bodyType: 'formData',
+            body: [[
+                'file',
+                { type: 'file', data: encodeResourceToken(resource), name: input.fileName, mimeType: 'image/uxp' },
+            ]],
+        }, signal);
+        const body = result.data as CanvasResponse<CanvasAsset> | undefined;
+        if (!result.success || !body || body.success === false) {
+            throw new Error(body ? errorMessage(body, result.status) : result.error || `Canvas 资产上传失败 (${result.status || 0})`);
+        }
+        return this.waitForAsset(projectId, body.data.id, signal);
+    }
+
+    async createGenerationGraph(
+        projectId: string,
+        capability: CanvasImageCapability,
+        modelId: string,
+        values: Record<string, unknown>,
+        assetIds: string[],
+        signal?: AbortSignal,
+    ): Promise<string> {
+        const graph = await this.request<CanvasProjectGraph>(`/api/projects/${encodeURIComponent(projectId)}/graph`, { signal });
+        const rightmost = graph.nodes.reduce((max, node) => Math.max(max, Number(node.ui?.x) || 0), 0);
+        const baseX = graph.nodes.length ? rightmost + 360 : 80;
+        const baseY = graph.nodes.reduce((max, node) => Math.max(max, Number(node.ui?.y) || 0), 80);
+        const generationNodeId = createId('ps-generation');
+        const assetNodes: CanvasGraphNode[] = assetIds.map((assetId, index) => ({
+            id: createId('ps-asset'),
+            type: 'image-asset',
+            ui: { x: baseX, y: baseY + index * 220, label: `Photoshop 参考图 ${index + 1}` },
+            data: { assetId, filename: `photoshop-reference-${index + 1}.png`, status: 'ready' },
+        }));
+        const generationNode: CanvasGraphNode = {
+            id: generationNodeId,
+            type: capability.nodeType,
+            ui: { x: baseX + (assetNodes.length ? 360 : 0), y: baseY, label: `Photoshop · ${modelId}` },
+            data: { ...capability.defaults, ...values, provider: capability.provider.id, model: modelId },
+        };
+        const edges: CanvasGraphEdge[] = assetNodes.map((node) => ({
+            id: createId('ps-edge'), source: node.id, target: generationNodeId, sourceHandle: 'output', targetHandle: 'image',
+        }));
+        await this.request(`/api/projects/${encodeURIComponent(projectId)}/graph/items`, {
+            method: 'POST',
+            body: { mutationId: createId('photoshop'), nodes: [...assetNodes, generationNode], edges },
+            signal,
+        });
+        return generationNodeId;
     }
 
     async run(projectId: string, nodeId: string): Promise<Task<Array<{ url: string; fileName?: string }>>> {
         const created = await this.request<CanvasTaskData>(`/api/projects/${encodeURIComponent(projectId)}/tasks`, {
-            method: 'POST',
-            body: { nodeId },
+            method: 'POST', body: { nodeId },
         });
-
         const task = new Task<Array<{ url: string; fileName?: string }>>(created.id, {
             statusGetter: async (taskId) => {
                 const current = await this.getTask(projectId, taskId);
@@ -129,14 +278,10 @@ export class CanvasClient {
                 const completed = status.rawData as CanvasTaskData;
                 if (completed.status === 'failed') throw new Error(completed.result?.error || 'Canvas 生成任务失败');
                 if (completed.status === 'canceled') throw new Error('Canvas 生成任务已取消');
-
                 const outputIds = completed.result?.outputAssetIds || [];
                 const primaryId = completed.result?.primaryOutputAssetId;
-                const orderedIds = primaryId
-                    ? [primaryId, ...outputIds.filter((id) => id !== primaryId)]
-                    : outputIds;
-                if (orderedIds.length === 0) throw new Error('Canvas 任务成功，但没有返回图片资产');
-
+                const orderedIds = primaryId ? [primaryId, ...outputIds.filter((id) => id !== primaryId)] : outputIds;
+                if (!orderedIds.length) throw new Error('Canvas 任务成功，但没有返回图片资产');
                 return orderedIds.map((assetId) => {
                     const index = outputIds.indexOf(assetId);
                     const outputPath = index >= 0 ? completed.result?.outputPaths[index] : undefined;
@@ -147,14 +292,22 @@ export class CanvasClient {
                 });
             },
             canceler: async (taskId) => {
-                await this.request(`/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}`, {
-                    method: 'DELETE',
-                });
+                await this.request(`/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
             },
         });
         task.taskName = `Canvas - ${created.modelId || nodeId}`;
         task.metadata = { provider: 'canvas', projectId, nodeId };
         return task;
+    }
+
+    private async waitForAsset(projectId: string, assetId: string, signal?: AbortSignal): Promise<CanvasAsset> {
+        while (true) {
+            if (signal?.aborted) throw new DOMException('Upload aborted', 'AbortError');
+            const asset = await this.request<CanvasAsset>(`/api/projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}`, { signal });
+            if (asset.status === 'ready') return asset;
+            if (asset.status === 'failed') throw new Error(asset.error || 'Canvas 资产处理失败');
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
     }
 
     private getTask(projectId: string, taskId: string): Promise<CanvasTaskData> {
@@ -186,12 +339,10 @@ async function canConnect(url: string, timeoutMs = 700): Promise<boolean> {
 export async function discoverCanvasBackend(preferredUrl: string): Promise<string> {
     const normalizedPreferred = normalizeBaseUrl(preferredUrl);
     if (await canConnect(normalizedPreferred)) return normalizedPreferred;
-
     const candidates = [
         'http://127.0.0.1:48051',
         ...Array.from({ length: 201 }, (_, index) => `http://127.0.0.1:${56888 + index}`),
     ].filter((url, index, values) => url !== normalizedPreferred && values.indexOf(url) === index);
-
     for (let index = 0; index < candidates.length; index += 20) {
         const batch = candidates.slice(index, index + 20);
         const results = await Promise.all(batch.map(async (url) => ({ url, found: await canConnect(url) })));
