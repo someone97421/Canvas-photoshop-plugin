@@ -74,7 +74,7 @@ export interface CanvasDocumentedModel {
 export interface CanvasGraphNode {
     id: string;
     type: string;
-    ui: { x: number; y: number; label?: string };
+    ui: { x: number; y: number; label?: string; nodeType?: string };
     data: Record<string, unknown>;
 }
 
@@ -247,10 +247,16 @@ export class CanvasClient {
         const generationNode: CanvasGraphNode = {
             id: generationNodeId,
             type: capability.nodeType,
-            ui: { x: baseX + (assetNodes.length ? 360 : 0), y: baseY, label: `Photoshop · ${modelId}` },
+            ui: {
+                x: baseX + (assetNodes.length ? 360 : 0),
+                y: baseY,
+                label: `Photoshop · ${modelId}`,
+                nodeType: capability.nodeType,
+            },
             data: {
                 ...capability.defaults,
                 ...values,
+                nodeType: capability.nodeType,
                 provider: capability.provider.id,
                 model: modelId,
                 inputAssetOrder: assetNodes.map((node) => node.id),

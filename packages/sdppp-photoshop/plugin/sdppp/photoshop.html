@@ -436,16 +436,13 @@ const LANGUAGE_LABEL_PREFIX=_0x4aa918(0x1b23);class GoogleGenAI{constructor(_0x4
   <script>
     const appendFormData = FormData.prototype.append;
     FormData.prototype.append = function (name, value, filename) {
-      if (filename !== undefined) {
-        return appendFormData.call(this, name, value, filename);
-      }
-      if (!(value instanceof Blob)) return appendFormData.call(this, name, value);
-      const extensionByMime = {
-        'image/jpeg': 'jpg',
-        'image/png': 'png',
-        'image/webp': 'webp',
-      };
-      const extension = extensionByMime[value.type] || (value.type === 'image/uxp' ? 'png' : 'bin');
+      if (filename !== undefined) return appendFormData.call(this, name, value, filename);
+      const mimeType = typeof value === "object" && value ? value.type : "";
+      if (!mimeType) return appendFormData.call(this, name, value);
+      const extension = mimeType === "image/jpeg" ? "jpg"
+        : mimeType === "image/webp" ? "webp"
+        : mimeType === "image/png" || mimeType === "image/uxp" ? "png"
+        : "bin";
       return appendFormData.call(this, name, value, `upload.${extension}`);
     };
   </script>

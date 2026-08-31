@@ -1,7 +1,7 @@
 [project]
 name = "canvas-photoshop-plugin"
 description = "Photoshop companion plugin for XuanshangCanvas with ComfyUI and RunningHub compatibility."
-version = "2.0.8"
+version = "2.0.9"
 license = { file = "LICENSE" }
 
 [project.urls]
