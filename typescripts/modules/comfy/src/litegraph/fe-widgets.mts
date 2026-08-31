@@ -367,18 +367,7 @@ export class DownloadWidget extends SDPPPWidget {
         this.onChange(() => {
             if (pagePhotoshopStoreMap.storeCount() == 0 && Date.now() - lastDownloadTime > 3000) {
                 lastDownloadTime = Date.now();
-                location.href = "/sd-ppp-static/sd-ppp_PS.ccx?_=" + Date.now();
-                // comfy app
-                setTimeout(() => {
-                    app.ui.dialog.show(`<h2 
-                        style="color: var(--fg-color);">${i18n('How to use .ccx file')}</h2><h4 
-                        style="color: var(--fg-color);">${i18n('1. If you have installed Adobe Creative Cloud')}</h4><p 
-                        style="color: var(--fg-color);">${i18n('Just double click the .ccx file, it will install the plugin automatically')}</p><h4 
-                        style="color: var(--fg-color);">${i18n("2. If you don't have Adobe Creative Cloud")}</h4><p 
-                        style="color: var(--fg-color);">${i18n('Rename .ccx to .zip and extract it into ')}<i>[${i18n('Photoshop directory')}]/Plug-ins</i> ${i18n('or')} <i>[${i18n('Photoshop directory')}]/Plug-ins/Generator</i></p><img 
-                        width=400 src="/sd-ppp-static/ccx-help.png"/>
-                    `)
-                }, 300);
+                app.ui.dialog.show(`<p style="color: var(--fg-color);">${i18n('Photoshop is not connected')}</p>`)
             }
         })
     }
@@ -386,7 +375,7 @@ export class DownloadWidget extends SDPPPWidget {
     update() {
         this.widget.label = pagePhotoshopStoreMap.storeCount() > 0 && ComfySocket.instance.id ?
             i18n('current ComfyUI pageid: {0}', ComfySocket.instance.id.slice(0, 4)) :
-            i18n('download PS plugin (.ccx)');
+            i18n('Photoshop is not connected');
     }
 
     private documentWidgetByLinked: DocumentWidget | null = null;

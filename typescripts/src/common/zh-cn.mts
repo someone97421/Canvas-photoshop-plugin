@@ -7,19 +7,9 @@ export default {
     '### Keep Size or Fit Canvas ###': '### 保持尺寸或适应画布 ###',
     '_SDPPP_PSD_': '_SDPPP_PSD_',
 
-    // A1111 UI
     'Save and run immediately': '保存并立即执行',
     'Close': '关闭',
     'Select a {0}': `选择一个 {0}`,
-
-    // comfyui dialog
-    'How to use .ccx file': '如何使用 .ccx 文件',
-    '1. If you have installed Adobe Creative Cloud': '1. 如果你已经安装了 Adobe Creative Cloud', 
-    'Just double click the .ccx file, it will install the plugin automatically': '双击 .ccx 文件，它会自动安装',
-    "2. If you don't have Adobe Creative Cloud": '2. 如果你没有 Adobe Creative Cloud',
-    'Rename .ccx to .zip and extract it into ': '将 .ccx 重命名为 .zip 并解压到',
-    'or': '或',
-    'Photoshop directory': 'Photoshop 安装目录',
 
     // comfyui error
     'Cannot connect multiple different document widgets with same value': '不能连接多个具有相同值的文档小部件',
@@ -41,9 +31,7 @@ export default {
     'SDPPP Select Layer And Run PS Action': '废弃节点! 选中图层并运行PS Action(RunPhotoshopAction)',
 
 // comfy widget/input
-    'download PS plugin (.ccx)': '下载 Photoshop 插件 (.ccx)',
     'current ComfyUI pageid: {0}': '当前 ComfyUI 页面ID: {0}',
-    'current A1111 pageid: {0}': '当前 A1111 页面ID: {0}',
     'document linked': '文档参数已链接',
     'layer linked': '图层参数已链接',
     'bound linked': '范围参数已链接',
@@ -117,9 +105,9 @@ export default {
     'selection_only': '仅选区',
     'Queue:': '队列:',
     'Set As:': '设置为:',
-    'Error {0}... please contact me via Discord/Github': '出现错误 {0}...，请通过 QQ/Github 联系我',
-    'Webview initialize failed. Please report to me via Discord/Github with your ComfyURL, Operate System': 'Webview 初始化失败，请通过 QQ/Github 联系我并附上你的Comfy地址、操作系统',
-    'ComfyUI with --multi-user is only available for sponsors': '带"--multi-user"的ComfyUI仅对赞助者开放',
+    'Error {0}... please contact me via Discord/Github': '出现错误 {0}，请检查日志和连接配置',
+    'Webview initialize failed. Please report to me via Discord/Github with your ComfyURL, Operate System': 'Webview 初始化失败，请检查 ComfyUI 地址和系统网络配置',
+    'ComfyUI with --multi-user is only available for sponsors': '当前插件宿主不支持该 ComfyUI 多用户会话',
     'Workflow Runner is loading...': '运行载体尚在加载...',
     '(Page ID: {0})Queue: {1}': '(页面ID: {0}) 队列长度 {1}',
     'no suitable node to control in this workflow': '这个工作流中没有能控制的节点',
@@ -149,7 +137,6 @@ export default {
     'Set API Key': '设置 API Key',
     'Please input API key (will reload Runner)': '请输入 API Key (会重启运行载体)',
     '### Active Workflow ###': '### 当前工作流 ###',
-    '### Example SDXL ###': '### 示例SDXL工作流 ###',
     'Open ComfyUI in the browser to see more options': '在浏览器中打开 ComfyUI 以得到更多选项',
     'Webview load timeout, please switch to a different runner': 'Webview 加载超时，请切换到其他运行载体',
     'Save workflow to ComfyUI': '保存工作流到 ComfyUI',
@@ -232,24 +219,13 @@ export default {
     'Manual': '手动模式',
     'Auto': '自动模式',
 
-    // about
-    'This plugin is based on sd-ppp': '本插件基于sd-ppp开发',
-    'And follows its open source license:': '并遵循其开源协议：',
-    "Cloud": "云端推荐",
-    "Sponsors": "赞助",
-    "waiting...": '虚位以待',
-    'Links': '友情链接',
-    'Community': '社区',
-    'LICENSE:': '许可证：',
-    'Official Site': '官方网站',
-
     // comfy popup
     "upload": "上传",
     "Simplify Workflow": "简化工作流",
     "Photoshop": "Photoshop",
     "Photoshop plugin settings": "Photoshop 插件设置",
     "Photoshop plugin": "Photoshop 插件",
-    "SDPPP Settings/Misc": "SDPPP 设置/杂项",
+    "SDPPP Settings/Misc": "插件设置/杂项",
     "Sample .PSD for this workflow:": "示例.PSD",
     "Download Example .PSD": "下载示例.PSD",
     "Maximum Image Size (px):": "最大图像尺寸(px)",

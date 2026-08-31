@@ -1,19 +1,9 @@
 try:
-    from fastapi.responses import FileResponse, StreamingResponse
-    from fastapi import UploadFile, File
-    import urllib
-except ImportError:
-    print("SD-PPP: fastapi not found")
-try:
     from aiohttp import web
-    from aiohttp.web import static
 except ImportError:
     print("SD-PPP: aiohttp not found")
 
-import numpy as np
 from io import BytesIO
-from PIL import Image
-from .protocols.photoshop import ProtocolPhotoshop
 import json
 
 import os.path as path
@@ -101,24 +91,6 @@ def registerComfyHTTPEndpoints(sdppp, PromptServer):
         return web.json_response({
             'version': version
         })
-        
-    
-def registerSDHTTPEndpoints(sdppp, app):
-    
-    @app.get('/sdppp_download')
-    def sdppp_download(name: str):
-        res = consumeImageCache(name)
-        if isinstance(res, str):
-            return FileResponse(urllib.parse.unquote(res), media_type='image/png')
-        else:
-            return StreamingResponse(BytesIO(res.tobytes()), media_type='image/png')
-        
-    @app.post('/sdppp_upload')
-    def sdppp_upload(image: UploadFile = File(...)):
-        name = addImageCache(Image.open(BytesIO(image.file.read())))
-        return {'name': name}
-
-
 def registerSocketEvents(sdppp, sio):
 
 

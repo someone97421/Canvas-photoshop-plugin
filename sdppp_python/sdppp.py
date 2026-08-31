@@ -1,9 +1,7 @@
 import socketio
 import os.path as path
 from .instances import PPPInstance
-from .apis import registerSocketEvents, registerComfyHTTPEndpoints, registerSDHTTPEndpoints
-import re
-import threading
+from .apis import registerSocketEvents, registerComfyHTTPEndpoints
 from nodes import NODE_CLASS_MAPPINGS
 
 # Define projectRoot as parent directory of current file
@@ -68,7 +66,7 @@ class SDPPP:
             if 'type' not in payload:
                 raise socketio.exceptions.ConnectionRefusedError('instance type not recognized')
 
-            elif payload['type'] == 'photoshop' or payload['type'] == 'comfy' or payload['type'] == 'a1111':
+            elif payload['type'] == 'photoshop' or payload['type'] == 'comfy':
                 instance = self.ppp_instances[sid] = PPPInstance(self, sid, payload['type'], payload['data'], payload['version'])
 
             else:

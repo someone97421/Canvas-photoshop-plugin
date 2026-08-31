@@ -64,7 +64,7 @@ export default function ComfyPopup({ onClose, tab }: { onClose: () => void, tab:
                         <button onClick={() => setTab('1')} className={_tab === '1' ? 'active' : ''}>{i18n("Simplify Workflow")}</button>
                         <button onClick={() => setTab('2')} className={_tab === '2' ? 'active' : ''}>{i18n("Photoshop")}</button>
                     </div>
-                    <span>Powered by SDPPP</span>
+                    <span>Canvas Photoshop Plugin</span>
                     <button className="sdppp-menu-close-button" onClick={onClose}><CloseIcon size={18} /></button>
                 </div>
                 <div className="sdppp-menu-content">

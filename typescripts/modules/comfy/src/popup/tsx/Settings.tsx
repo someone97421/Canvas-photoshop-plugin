@@ -6,13 +6,6 @@ import { api } from "../../comfy-globals.mts";
 
 const Settings: React.FC = () => {
     const [useSliderForNumberWidget, setUseSliderForNumberWidget] = useState(pageStore.data.useSliderForNumberWidget);
-    const handleDownloadPlugin = () => {
-        location.href = "/sd-ppp-static/sd-ppp_PS.ccx?_=" + Date.now();
-    };
-    const handleDownloadPlugin2 = () => {
-        location.href = "https://gitee.com/zombieyang/sd-ppp/raw/main/static/sd-ppp2_PS.ccx?_=" + Date.now();
-    };
-
     return (
         <div className="settings-container">
             <h2>{i18n("SDPPP Settings/Misc")}</h2>
@@ -23,27 +16,6 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="settings-control">
                     {location.href.split("?")[0].split("#")[0]}
-                </div>
-            </div>
-
-            <div className="settings-section settings-row">
-                <div className="settings-label">
-                    <label>{i18n("Photoshop plugin")} (1.x deprecated)</label>
-                </div>
-                <div className="settings-control">
-                    <button onClick={handleDownloadPlugin} className="download-button">
-                        {i18n("Download")}
-                    </button>
-                </div>
-            </div>
-            <div className="settings-section settings-row">
-                <div className="settings-label">
-                    <label>{i18n("Photoshop plugin")} 2.0</label>
-                </div>
-                <div className="settings-control">
-                    <button onClick={handleDownloadPlugin2} className="download-button">
-                        {i18n("Download")}
-                    </button>
                 </div>
             </div>
 

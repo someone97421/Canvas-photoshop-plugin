@@ -1,4 +1,4 @@
-import { useSDPPPContext, Promote, Auths } from "./SDPPPInternalBridge.js";
+import { useSDPPPContext } from "./SDPPPInternalBridge.js";
 import i18n, { isValidI18nKey } from "../../../../src/common/i18n.mjs";
 import WorkflowList from "./WorkflowList.js";
 import { useEffect, useState } from "react";
@@ -45,7 +45,6 @@ export function Content({
     }, [connectState]);
     return (
         <>
-            <Promote />
             <div className="header-container">
                 <div className="connect-box">
                     { 
@@ -80,8 +79,6 @@ export function Content({
                     </div>
                 ) : ''
             }
-
-            {/* <Auths /> */}
 
             {
                 connectState === "connected" &&

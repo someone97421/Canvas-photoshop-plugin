@@ -92,14 +92,6 @@ const WorkflowList: React.FC<WorkflowListProps> = ({ setEditorMode }) => {
                         await runPage(workflowAgentSID);
                     }}
                 />
-                <SpecialWorkflowItem
-                    setEditorMode={setEditorMode}
-                    path={'sdppp://Sample_SDXL.json'}
-                    title={i18n('### Example SDXL ###')}
-                    onRun={async () => {
-                        await runPage(workflowAgentSID);
-                    }}
-                />
             </ul>
 
             {autoRunning?.type == 'workflow' ? <sp-label class="autorun-desc">{i18n(`auto run workflow [{0}] after change..`, workflows[autoRunning?.value]?.path)}</sp-label> : ''}

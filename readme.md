@@ -1,46 +1,25 @@
-# SD-PPP: Unofficial Photoshop AI Plugin
+# Canvas Photoshop Plugin
 
-[![](https://dcbadge.limes.pink/api/server/https://discord.gg/9HeGjDvEmn?style=flat)](https://discord.gg/9HeGjDvEmn) | [![微信群](https://img.shields.io/badge/CHN-%E5%BE%AE%E4%BF%A1%E7%BE%A4-brightgreen.svg)](https://sdppp.zombee.tech/zh/discuss/) 
+基于 SD-PPP 2.0 的自用 Photoshop 插件 fork，用于连接 XuanshangCanvas 后端，同时保留 ComfyUI 与 RunningHub 兼容能力。
 
-![GitHub Repo stars](https://img.shields.io/github/stars/zombieyang/sd-ppp) 
-<!-- | [![Kofi](https://img.shields.io/badge/Kofi-F16061.svg?logo=ko-fi&logoColor=white)](https://ko-fi.com/zombieyang) -->
+## 当前结构
 
-**Latest: Support Nano-banana, Flux-Kontext-Pro/Max, Midjourney or any API via RunningHUB in Photoshop!**
+- Photoshop React 入口：`typescripts/modules/photoshop/src/entry.tsx`
+- ComfyUI Web 扩展入口：`typescripts/modules/comfy/src/comfy-entry.mts`
+- ComfyUI Python 入口：`__init__.py`
+- 共享协议与状态：`typescripts/src/`
 
-**Latest: Support Nano-banana, Flux-Kontext-Pro/Max, Midjourney or any API via RunningHUB in Photoshop!**
+完整开发边界、构建限制和 XuanshangCanvas 接入约定见 `AGENTS.md`。
 
-**Latest: Support Nano-banana, Flux-Kontext-Pro/Max, Midjourney or any API via RunningHUB in Photoshop!**
+## 开发命令
 
-<img width="400" alt="Image" src="./static/index.gif" />
+```bash
+pnpm tscheck
+pnpm dev
+```
 
+`pnpm build` 会覆盖发行产物，且完整 Photoshop 构建依赖未公开的内部宿主模块；仅在明确需要发行包时运行。
 
-## 2.0 Beta is available!
+## License
 
-* Support any models and AIApps from `replicate.com` and `www.runninghub.ai`
-* No custom nodes needed when using ComfyUI
-* New UI, especially for sending images and receiving images.
-* Select images with keyboard shortcuts
-* Select any area, layer, document in Photoshop quickly!
-
-[> Download 2.0 Beta](https://sdppp.zombee.tech/)
-
-> only available for PS26.0+ (Adobe Photoshop 2025)
-
-## How to use?
-
-* **[Official Website](https://sdppp.zombee.tech/)**
-
-## License  
-GPL-3.0
-
-## Source Code  
-[sd-ppp/monorepo](https://github.com/sd-ppp/monorepo)
-
-## Thanks
-@[AbdullahAlfaraj](https://github.com/AbdullahAlfaraj)
-@[tianlang0704](https://github.com/tianlang0704)
-@[猫咪老师](https://www.xiaohongshu.com/user/profile/59f1fcc411be101aba7f048f)
-
-
-
-
+BSD 3-Clause。保留原项目版权声明，详见 `LICENSE` 与 `NOTICE`。
