@@ -8,30 +8,58 @@ const _menuItems = Symbol("_menuItems");
 
 const CANVAS_BRAND_NAME = "这是一个画布";
 
-function configureBrandLabel(root) {
-    const visit = element => {
-        for (const node of element.childNodes || []) {
-            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().toLowerCase() === "sdppp") {
-                node.textContent = CANVAS_BRAND_NAME;
-                const brandEntry = element.closest(".cursor-pointer, button, [role='button'], a") || element;
-                brandEntry.dataset.canvasBrand = "true";
-                brandEntry.classList.remove("cursor-pointer");
-                brandEntry.style.cursor = "default";
-                return true;
-            }
-            if (node.nodeType === Node.ELEMENT_NODE && visit(node)) return true;
+function findBrandEntry(element) {
+    let current = element;
+    while (current && current.nodeType === 1) {
+        const tagName = String(current.tagName || "").toLowerCase();
+        const role = current.getAttribute ? current.getAttribute("role") : "";
+        const className = String(current.className || "");
+        if (tagName === "button" || tagName === "a" || role === "button" || className.indexOf("cursor-pointer") >= 0) {
+            return current;
         }
-        return false;
-    };
+        current = current.parentElement;
+    }
+    return element;
+}
 
-    visit(root);
+function hasCanvasBrandMarker(element) {
+    let current = element;
+    while (current && current.nodeType === 1) {
+        if (current.getAttribute && current.getAttribute("data-canvas-brand") === "true") return true;
+        current = current.parentElement;
+    }
+    return false;
+}
+
+function configureBrandLabel(root) {
+    try {
+        const visit = element => {
+            const children = element.childNodes || [];
+            for (let index = 0; index < children.length; index += 1) {
+                const node = children[index];
+                if (node.nodeType === 3 && String(node.textContent || "").trim().toLowerCase() === "sdppp") {
+                    node.textContent = CANVAS_BRAND_NAME;
+                    const brandEntry = findBrandEntry(element);
+                    if (brandEntry.setAttribute) brandEntry.setAttribute("data-canvas-brand", "true");
+                    if (brandEntry.style) brandEntry.style.cursor = "default";
+                    return true;
+                }
+                if (node.nodeType === 1 && visit(node)) return true;
+            }
+            return false;
+        };
+
+        visit(root);
+    } catch (error) {
+        console.warn("更新画布品牌名称失败", error);
+    }
 }
 
 document.addEventListener("click", event => {
-    if (event.target.closest?.("[data-canvas-brand='true']")) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-    }
+    if (!hasCanvasBrandMarker(event.target)) return;
+    event.preventDefault();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+    else event.stopPropagation();
 }, true);
 
 class PanelController {
@@ -66,8 +94,14 @@ class PanelController {
         setTimeout(() => configureBrandLabel(this[_root]), 0);
         setTimeout(() => configureBrandLabel(this[_root]), 250);
 
-        const observer = new MutationObserver(() => configureBrandLabel(this[_root]));
-        observer.observe(this[_root], { childList: true, subtree: true });
+        if (typeof MutationObserver === "function" && MutationObserver.prototype && MutationObserver.prototype.observe) {
+            try {
+                const observer = new MutationObserver(() => configureBrandLabel(this[_root]));
+                observer.observe(this[_root], { childList: true, subtree: true });
+            } catch (error) {
+                console.warn("监听画布品牌名称失败", error);
+            }
+        }
 
         return this[_root];
     }

@@ -4,9 +4,10 @@
 <head>
 <script>
 window.__VITE_REMOTE_CONFIG_META__ = {
+  sponsors: { id: 'sponsors', url: 'about:blank', localStorageKey: 'remote-config-sponsors' },
   tenant: { id: 'tenant', url: 'https://sdppp.zombee.tech/tenants/65b95867-1c57-42ed-baa5-849a89790b51.json?t=123', localStorageKey: 'remote-config-tenant' },
 };
-window.__VITE_REMOTE_CONFIG_FALLBACK__ = { tenant: {} };
+window.__VITE_REMOTE_CONFIG_FALLBACK__ = { sponsors: { zh: '', en: '' }, tenant: {} };
 console.log('[vite-remote-config-loader] Global config injected:', Object.keys(window.__VITE_REMOTE_CONFIG_META__ || {}));
 </script>
   <script>
