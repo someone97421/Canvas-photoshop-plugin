@@ -21,7 +21,11 @@ import { canvasStore } from './canvas.store';
 
 const { Text } = Typography;
 const REFERENCE_IMAGES_FIELD = '__canvasReferenceImages';
+const SIZE_MODE_FIELD = '__canvasSizeMode';
+const CUSTOM_WIDTH_FIELD = '__canvasCustomWidth';
+const CUSTOM_HEIGHT_FIELD = '__canvasCustomHeight';
 const COMMON_FIELDS = new Set([REFERENCE_IMAGES_FIELD, 'prompt']);
+const UI_ONLY_FIELDS = new Set([SIZE_MODE_FIELD, CUSTOM_WIDTH_FIELD, CUSTOM_HEIGHT_FIELD]);
 
 function selectionKey(nodeType: string, modelId: string): string {
     return `${nodeType}::${modelId}`;
@@ -37,45 +41,84 @@ function documentedModel(capability: CanvasImageCapability, modelId: string): Ca
     return capability.documentedModels?.find((model) => model.id === modelId);
 }
 
+function parseDimensions(value: unknown): { width: number; height: number } | null {
+    const match = String(value || '').trim().match(/^(\d+)\s*[xX×]\s*(\d+)$/);
+    return match ? { width: Number(match[1]), height: Number(match[2]) } : null;
+}
+
 function documentedProperties(capability: CanvasImageCapability, modelId: string, values: Record<string, unknown>) {
     const model = documentedModel(capability, modelId);
     if (!model) return capability.definition.dataSchema.properties || {};
     const source = capability.definition.dataSchema.properties || {};
     const resolutions = Object.keys(model.resolutionRatios || model.resolutionSizes || {});
-    const resolution = resolutions.includes(String(values.resolution || ''))
-        ? String(values.resolution)
+    const rawResolution = String(values.resolution || '');
+    const legacyCustomDimensions = model.supportsCustomSize ? parseDimensions(rawResolution) : null;
+    const requestedMode = String(values[SIZE_MODE_FIELD] || '');
+    const customActive = Boolean(model.supportsCustomSize && (
+        requestedMode ? requestedMode === 'custom' : rawResolution === 'custom' || legacyCustomDimensions
+    ));
+    const resolution = !customActive && resolutions.includes(rawResolution)
+        ? rawResolution
         : model.defaultResolution && resolutions.includes(model.defaultResolution) ? model.defaultResolution : resolutions[0];
     const ratios = model.resolutionRatios?.[resolution] || Object.keys(model.resolutionSizes?.[resolution] || {});
-    const properties: Record<string, CanvasSchemaProperty> = {
-        prompt: source.prompt,
-        resolution: {
+    const customDimensions = legacyCustomDimensions || parseDimensions(values.size) || { width: 1024, height: 1024 };
+    const properties: Record<string, CanvasSchemaProperty> = { prompt: source.prompt };
+
+    if (model.supportsCustomSize) {
+        properties[SIZE_MODE_FIELD] = {
             type: 'string',
-            default: resolution,
-            ui: { widget: 'select', label: '分辨率', options: resolutions.map((value) => ({ label: value, value })) },
-        },
-        n: source.n || { type: 'number', default: 1, ui: { widget: 'number', label: '生成数量', min: 1, max: 1, step: 1 } },
-    };
-    if (model.parameterMode === 'resolution-ratio') {
-        properties.aspectRatio = {
-            type: 'string',
-            default: ratios[0],
-            ui: { widget: 'select', label: '比例', options: ratios.map((value) => ({ label: value, value })) },
-        };
-    } else {
-        const sizes = model.resolutionSizes?.[resolution] || {};
-        properties.size = {
-            type: 'string',
-            default: sizes[ratios[0]] || '',
+            default: customActive ? 'custom' : 'preset',
             ui: {
                 widget: 'select',
-                label: '比例 / 具体分辨率',
-                options: ratios.map((ratio) => ({
-                    label: `${ratio} · ${String(sizes[ratio] || '').replace('x', '×')}`,
-                    value: sizes[ratio],
-                })),
+                label: '尺寸模式',
+                options: [
+                    { label: '分辨率档位 + 比例', value: 'preset' },
+                    { label: '自定义', value: 'custom' },
+                ],
             },
         };
     }
+    if (customActive) {
+        properties[CUSTOM_WIDTH_FIELD] = {
+            type: 'number',
+            default: customDimensions.width,
+            ui: { widget: 'number', label: '宽度', min: 16, max: 3840, step: 16 },
+        };
+        properties[CUSTOM_HEIGHT_FIELD] = {
+            type: 'number',
+            default: customDimensions.height,
+            ui: { widget: 'number', label: '高度', min: 16, max: 3840, step: 16 },
+        };
+    } else {
+        properties.resolution = {
+            type: 'string',
+            default: resolution,
+            ui: { widget: 'select', label: '分辨率', options: resolutions.map((value) => ({ label: value, value })) },
+        };
+        if (model.parameterMode === 'resolution-ratio') {
+            properties.aspectRatio = {
+                type: 'string',
+                default: ratios[0],
+                ui: { widget: 'select', label: '比例', options: ratios.map((value) => ({ label: value, value })) },
+            };
+        } else {
+            const sizes = model.resolutionSizes?.[resolution] || {};
+            properties.size = {
+                type: 'string',
+                default: sizes[ratios[0]] || '',
+                ui: {
+                    widget: 'select',
+                    label: '比例 / 具体分辨率',
+                    options: ratios.map((ratio) => ({
+                        label: `${ratio} · ${String(sizes[ratio] || '').replace('x', '×')}`,
+                        value: sizes[ratio],
+                    })),
+                },
+            };
+        }
+    }
+
+    properties.n = source.n || { type: 'number', default: 1, ui: { widget: 'number', label: '生成数量', min: 1, max: 1, step: 1 } };
     if (model.qualityOptions?.length) {
         properties.quality = {
             type: 'string', default: model.defaultQuality || model.qualityOptions[0],
@@ -87,12 +130,6 @@ function documentedProperties(capability: CanvasImageCapability, modelId: string
             type: 'string', default: model.responseFormats[0],
             ui: { widget: 'select', label: '响应格式', options: model.responseFormats.map((value) => ({ label: value, value })) },
         };
-    }
-    if (model.supportsCustomSize) {
-        properties.resolution.ui!.options!.push({ label: '自定义', value: 'custom' });
-        if (values.resolution === 'custom') {
-            properties.size = { type: 'string', default: '2048x2048', ui: { widget: 'text', label: '自定义尺寸' } };
-        }
     }
     return properties;
 }
@@ -172,6 +209,13 @@ function normalizeFormValues(
             nextValues[name] = (defaultOption || options[0]).value;
         }
 
+        if (properties[CUSTOM_WIDTH_FIELD] && properties[CUSTOM_HEIGHT_FIELD]) {
+            const width = Math.round(Number(nextValues[CUSTOM_WIDTH_FIELD]) || 1024);
+            const height = Math.round(Number(nextValues[CUSTOM_HEIGHT_FIELD]) || 1024);
+            nextValues.resolution = 'custom';
+            nextValues.size = `${width}x${height}`;
+        }
+
         const stable = Object.keys(values).length === Object.keys(nextValues).length
             && Object.entries(nextValues).every(([name, value]) => sameValue(values[name], value));
         values = nextValues;
@@ -183,13 +227,16 @@ function normalizeFormValues(
 }
 
 function toWidget(name: string, property: CanvasSchemaProperty, values: Record<string, unknown>): WidgetableWidget {
-    const common = { name, uiWeight: 12 };
+    const common = {
+        name: name === CUSTOM_WIDTH_FIELD || name === CUSTOM_HEIGHT_FIELD ? '' : property.ui?.label || name,
+        uiWeight: 12,
+    };
     const options = resolveOptions(property, values);
     const currentValue = String(values[name] ?? property.default ?? '');
     const matchesPreset = options.some((option) => option.value !== 'custom' && sameValue(option.value, currentValue));
     const usesCustomInput = options.some((option) => option.value === 'custom')
         && (currentValue === 'custom' || (!matchesPreset && /^\d+x\d+$/i.test(currentValue)));
-    if (usesCustomInput) return { ...common, outputType: 'string', options: { required: false } };
+    if (name !== SIZE_MODE_FIELD && usesCustomInput) return { ...common, outputType: 'string', options: { required: false } };
     if (options.length) {
         return {
             ...common,
@@ -472,6 +519,7 @@ function CanvasGenerationForm({
             const nodeValues = { ...liveValues };
             delete nodeValues[REFERENCE_IMAGES_FIELD];
             delete nodeValues.model;
+            UI_ONLY_FIELDS.forEach((field) => delete nodeValues[field]);
             setStatus('正在画布中创建资产、节点和连线...');
             const nodeId = await client.createGenerationGraph(projectId, capability, modelId, nodeValues, assetIds, runController.signal);
             if (runController.signal.aborted) throw new DOMException('Generation cancelled', 'AbortError');

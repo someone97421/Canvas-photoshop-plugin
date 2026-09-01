@@ -6,6 +6,34 @@ const _root = Symbol("_root");
 const _attachment = Symbol("_attachment");
 const _menuItems = Symbol("_menuItems");
 
+const CANVAS_BRAND_NAME = "这是一个画布";
+
+function configureBrandLabel(root) {
+    const visit = element => {
+        for (const node of element.childNodes || []) {
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().toLowerCase() === "sdppp") {
+                node.textContent = CANVAS_BRAND_NAME;
+                const brandEntry = element.closest(".cursor-pointer, button, [role='button'], a") || element;
+                brandEntry.dataset.canvasBrand = "true";
+                brandEntry.classList.remove("cursor-pointer");
+                brandEntry.style.cursor = "default";
+                return true;
+            }
+            if (node.nodeType === Node.ELEMENT_NODE && visit(node)) return true;
+        }
+        return false;
+    };
+
+    visit(root);
+}
+
+document.addEventListener("click", event => {
+    if (event.target.closest?.("[data-canvas-brand='true']")) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+}, true);
+
 class PanelController {
     constructor({ id, menuItems } = {}) {
         this[_id] = null;
@@ -34,6 +62,12 @@ class PanelController {
         // render entry
         // 渲染入口
         globalThis.sdpppX.__start__(this[_root]);
+        configureBrandLabel(this[_root]);
+        setTimeout(() => configureBrandLabel(this[_root]), 0);
+        setTimeout(() => configureBrandLabel(this[_root]), 250);
+
+        const observer = new MutationObserver(() => configureBrandLabel(this[_root]));
+        observer.observe(this[_root], { childList: true, subtree: true });
 
         return this[_root];
     }
