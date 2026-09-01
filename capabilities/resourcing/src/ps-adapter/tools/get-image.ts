@@ -11,6 +11,7 @@ import { runNextModalState } from "../helpers/modal-state-wrapper";
 import {
     applyLayerDataWithTransparent,
     fixAlphaChannel,
+    normalizePixelAlpha,
     alignPixelBit,
     padAndTrimToDesireBounds as padAndTrimToBounds,
     getScaleRatio,
@@ -65,7 +66,6 @@ async function getPixelsData({
     const options: any = {
         documentID: document.id,
         applyAlpha: false,
-        hasAlpha: true,
         sourceBounds: bounds,
         targetSize,
         colorSpace: "RGB"
@@ -215,17 +215,7 @@ async function getJimpImageSimple(params: getImageActions["params"]): Promise<Ji
     log("modalEnd");
 
     if (!pixelDataFromAPIInit) throw new Error(t("get pixel of {{0}} failed", { "0": layerIdentify }));
-    let pixelDataFromAPI = alignPixelBit(pixelDataFromAPIInit);
-
-    let layerWithoutTransparent = false;
-    if (layer) {
-        layerWithoutTransparent = layer.transparentPixelsLocked;
-    } else if (isCanvas) {
-        layerWithoutTransparent = document.layers.every((l) => l.transparentPixelsLocked);
-    }
-    if (layerWithoutTransparent) {
-        pixelDataFromAPI = fixAlphaChannel(pixelDataFromAPI);
-    }
+    let pixelDataFromAPI = normalizePixelAlpha(alignPixelBit(pixelDataFromAPIInit), isCanvas);
 
     let pixelData = padAndTrimToBounds(pixelDataFromAPI, bounds.scaledIntersect!, bounds.scaledDesire!);
 
@@ -291,7 +281,6 @@ async function getJimpImageWithHistory(params: getImageActions["params"]): Promi
     let mergedLayer: Layer | null = null;
     let pixelDataFromAPI: any;
     let maskDataFromAPI: any;
-    let layerWithoutTransparent = false;
 
     await runNextModalState(async (restorer) => {
         log("modalStart");
@@ -331,12 +320,6 @@ async function getJimpImageWithHistory(params: getImageActions["params"]): Promi
             })
         ]);
 
-        layerWithoutTransparent = false;
-        if (layer) {
-            layerWithoutTransparent = layer.transparentPixelsLocked;
-        } else if (SpeicialIDManager.is_SPECIAL_LAYER_USE_CANVAS(layerIdentify)) {
-            layerWithoutTransparent = document.layers.every((l) => l.transparentPixelsLocked);
-        }
     }, {
         commandName: t("get content of layer {{0}}", { "0": layerIdentify }),
         document
@@ -349,10 +332,10 @@ async function getJimpImageWithHistory(params: getImageActions["params"]): Promi
     if (!pixelDataFromAPI || !bounds.scaledIntersect || !bounds.origin) {
         throw new Error(t("get pixel of {{0}} failed", { "0": layerIdentify }));
     }
-    pixelDataFromAPI = alignPixelBit(pixelDataFromAPI);
-    if (layerWithoutTransparent) {
-        pixelDataFromAPI = fixAlphaChannel(pixelDataFromAPI);
-    }
+    pixelDataFromAPI = normalizePixelAlpha(
+        alignPixelBit(pixelDataFromAPI),
+        SpeicialIDManager.is_SPECIAL_LAYER_USE_CANVAS(layerIdentify)
+    );
 
     let pixelData = padAndTrimToBounds(pixelDataFromAPI, bounds.scaledIntersect, bounds.scaledDesire!);
 
@@ -452,6 +435,7 @@ export default getImage;
 export {
     applyLayerDataWithTransparent,
     fixAlphaChannel,
+    normalizePixelAlpha,
     alignPixelBit,
     padAndTrimToBounds as padAndTrimToDesireBounds,
     getScaleRatio

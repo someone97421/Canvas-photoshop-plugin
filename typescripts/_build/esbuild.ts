@@ -1,12 +1,4 @@
-// 创建一个esbuild脚本。
-// 有三个entry，这些entry各自都会使用不同的编译配置
-// 1. join(typescriptSrcRoot, './plugins/photoshop/entry.tsx')
-// 2. join(typescriptSrcRoot, './plugins/photoshop/librarys.mts'),
-// 3. join(typescriptSrcRoot, './plugins/photoshop-internal/entry.tsx')
-// 4. join(typescriptSrcRoot, './sdsystem/comfy/comfy-entry.mts')
-// 某个entry不存在时，不进行编译
-// 采用context，能够watch typescripts目录下所有文件的变动
-// 能够启动一个websocket服务，在每次编译完成后通知所有client
+// 构建 typescripts/modules 下仍在使用的模块；开发模式支持 watch 通知。
 
 import * as esbuild from 'esbuild';
 import WebSocket, { WebSocketServer } from 'ws';
@@ -58,13 +50,13 @@ async function createBuildContexts() {
   const isWatchMode = process.argv.includes('--watch');
 
   const buildConfigs = await Promise.all(
-    globSync(join(typescriptSrcRoot, 'modules/*').replace(/\\/g, '/'))
-      .map(async (path: string) => {
-        const configUrl = pathToFileURL(join(path, 'esbuild.ts'));
+    globSync(join(typescriptSrcRoot, 'modules/*/esbuild.ts').replace(/\\/g, '/'))
+      .map(async (configPath: string) => {
+        const configUrl = pathToFileURL(configPath);
         const config = await import(configUrl)
         return {
           config: config.config,
-          name: path.split('/').pop()
+          name: path.basename(path.dirname(configPath))
         }
       })
   )

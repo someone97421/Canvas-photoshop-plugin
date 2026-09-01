@@ -18,7 +18,7 @@
 - `capabilities/resourcing/src/ps-adapter/` 是 Photoshop 原生能力实现；图像、选区、边界、图层和 Modal 状态处理应在该适配层修改。`packages/sdppp-photoshop/src/providers/` 是 Provider 体系，现有 ComfyUI、RunningHub、OpenAI/Gemini 通用接口与 Replicate 必须保留。
 - `typescripts/modules/comfy/src/comfy-entry.mts` 是 ComfyUI Web 扩展入口；`__init__.py` 是 ComfyUI Python 包入口；`sdppp_python/sdppp.py` 挂载 `/sd-ppp/` Socket.IO 服务。
 - `typescripts/src/` 是 Photoshop 与 ComfyUI 的共享协议、Store 和工作流代码。现有 `F_photoshop`/`B_photoshop`、`F_workflow`/`B_workflow` 事件属于 SD-PPP 协议，不是 XuanshangCanvas 协议。
-- `typescripts/modules/photoshop/` 与 `plugins/photoshop/` 是合并前公开发布仓库遗留的简化 Photoshop 前端，不再作为 2.0 UXP 主入口；Canvas 代码迁移完成后不得继续向该目录增加宿主能力。
+- 合并前遗留的 `typescripts/modules/photoshop/` 与 `plugins/photoshop/` 简化插件已删除；Photoshop 能力只在完整 2.0 插件中维护。
 - `javascript/`、`packages/sdppp-photoshop/plugin/webview/` 和 `static/*.ccx` 是构建/发行产物；常规源码改动不要手工编辑这些文件。
 
 ## 2.0 源码索引

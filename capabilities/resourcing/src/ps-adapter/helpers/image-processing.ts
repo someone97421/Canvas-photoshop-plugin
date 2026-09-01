@@ -59,6 +59,34 @@ export function fixAlphaChannel(pixelDataWithSize: PixelsAndSize<Uint8Array>): P
     };
 }
 
+/** Photoshop 偶尔会为整画布返回有效 RGB，但把四通道 Alpha 全部置零。 */
+export function restoreOpaqueCanvasAlpha(pixelDataWithSize: PixelsAndSize<Uint8Array>): PixelsAndSize<Uint8Array> {
+    const { dataFromAPI, width, height } = pixelDataWithSize;
+    if (dataFromAPI.length !== width * height * 4) return pixelDataWithSize;
+
+    let hasVisibleColor = false;
+    for (let i = 0; i < width * height; i++) {
+        const offset = i * 4;
+        if (dataFromAPI[offset + 3] !== 0) return pixelDataWithSize;
+        hasVisibleColor ||= dataFromAPI[offset] !== 0 || dataFromAPI[offset + 1] !== 0 || dataFromAPI[offset + 2] !== 0;
+    }
+    if (!hasVisibleColor) return pixelDataWithSize;
+
+    for (let i = 0; i < width * height; i++) {
+        dataFromAPI[i * 4 + 3] = 255;
+    }
+    return pixelDataWithSize;
+}
+
+export function normalizePixelAlpha(
+    pixelDataWithSize: PixelsAndSize<Uint8Array>,
+    restoreOpaqueCanvas = false
+): PixelsAndSize<Uint8Array> {
+    const componentCount = pixelDataWithSize.dataFromAPI.length / (pixelDataWithSize.width * pixelDataWithSize.height);
+    if (componentCount === 3) return fixAlphaChannel(pixelDataWithSize);
+    return restoreOpaqueCanvas ? restoreOpaqueCanvasAlpha(pixelDataWithSize) : pixelDataWithSize;
+}
+
 export function alignPixelBit(pixelAndSize: PixelsAndSize<Uint8Array | Uint16Array | Float32Array>): PixelsAndSize<Uint8Array> {
     if (pixelAndSize.dataFromAPI instanceof Uint8Array) {
         return pixelAndSize as PixelsAndSize<Uint8Array>;

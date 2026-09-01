@@ -4,7 +4,8 @@
 
 ## 当前结构
 
-- Photoshop React 入口：`typescripts/modules/photoshop/src/entry.tsx`
+- Photoshop Webview 入口：`packages/sdppp-photoshop/src/index.tsx`
+- Photoshop UXP 宿主入口：`packages/sdppp-photoshop/plugin/`
 - ComfyUI Web 扩展入口：`typescripts/modules/comfy/src/comfy-entry.mts`
 - ComfyUI Python 入口：`__init__.py`
 - 共享协议与状态：`typescripts/src/`
@@ -18,12 +19,9 @@ pnpm tscheck
 pnpm dev
 ```
 
-`pnpm build` 会重建 Canvas 原生 Photoshop 插件和一般分发包。SD-PPP 2.0 兼容插件依赖未公开的内部宿主模块，因此以预编译 CCX 保留。
+`pnpm build` 会重建 Photoshop Webview、完整 UXP 插件包、ComfyUI Web 扩展和一般分发包。
 
-一般分发包中包含两个 Photoshop 插件：
-
-- `static/sd-ppp_PS.ccx`：XuanshangCanvas 原生面板，用于提交画布生图任务并把结果送回 Photoshop。
-- `static/sd-ppp2_PS.ccx`：SD-PPP 2.0 兼容插件，保留 ComfyUI、RunningHub、OpenAI 通用格式与 Gemini 通用接口。它与 Canvas 原生面板使用不同插件 ID，可同时安装。
+Photoshop 安装包为 `static/sd-ppp2_PS.ccx`（也保留同内容的 `static/sd-ppp2_PS.zip` 便于调试），内含 XuanshangCanvas、ComfyUI、RunningHub、OpenAI/Gemini 通用接口与 Replicate Provider。
 
 ## License
 
