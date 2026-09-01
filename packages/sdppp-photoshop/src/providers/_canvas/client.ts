@@ -201,7 +201,7 @@ export class CanvasClient {
     }
 
     createProject(name = 'Photoshop 生成'): Promise<CanvasProject> {
-        return this.request('/api/projects', { method: 'POST', body: { name, description: '由 SD-PPP Photoshop 插件创建' } });
+        return this.request('/api/projects', { method: 'POST', body: { name, description: '由画布插件创建' } });
     }
 
     getProjectGraph(projectId: string): Promise<CanvasProjectGraph> {

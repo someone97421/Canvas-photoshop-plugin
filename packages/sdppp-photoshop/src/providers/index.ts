@@ -12,6 +12,7 @@ import CanvasRenderer from "./_canvas/renderer/canvas";
 const ComfyUILogo = './assets/provider-logos/comfy_160x160.jpg';
 const ReplicateLogo = './assets/provider-logos/replicate_160x160.jpg';
 const RunningHubLogo = './assets/provider-logos/runninghub_160x160.jpg';
+const CanvasLogo = './assets/provider-logos/canvas.png';
 
 export interface ProviderMetadata {
     id: string;
@@ -34,6 +35,17 @@ const CustomAPIProvider = {
 } as const;
 
 export const Providers = {
+    Canvas: {
+        client: CanvasClient,
+        Renderer: CanvasRenderer,
+        metadata: {
+            id: 'Canvas',
+            name: '这是一个画布',
+            description: '使用画布已配置的模型创建生成节点、运行任务并将结果送回 Photoshop',
+            brandColor: '#d9d7d0',
+            logoPath: CanvasLogo
+        }
+    },
     Replicate: {
         client: SDPPPReplicate,
         Renderer: ReplicateRenderer,
@@ -67,24 +79,13 @@ export const Providers = {
             logoPath: ComfyUILogo
         }
     },
-    Canvas: {
-        client: CanvasClient,
-        Renderer: CanvasRenderer,
-        metadata: {
-            id: 'Canvas',
-            name: 'Xuanshang Canvas',
-            description: '使用画布已配置的模型创建生成节点、运行任务并将结果送回 Photoshop',
-            brandColor: '#6f5cff',
-            logoPath: ''
-        }
-    },
     CustomAPI: CustomAPIProvider
 }
 
 export const PROVIDER_METADATA: Record<string, ProviderMetadata> = {
+    Canvas: Providers.Canvas.metadata,
     Replicate: Providers.Replicate.metadata,
     RunningHub: Providers.RunningHub.metadata,
     ComfyUI: Providers.ComfyUI.metadata,
-    Canvas: Providers.Canvas.metadata,
     CustomAPI: Providers.CustomAPI.metadata
 };

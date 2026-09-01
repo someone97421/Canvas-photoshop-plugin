@@ -53,13 +53,29 @@ function documentedProperties(capability: CanvasImageCapability, modelId: string
             default: resolution,
             ui: { widget: 'select', label: '分辨率', options: resolutions.map((value) => ({ label: value, value })) },
         },
-        aspectRatio: {
+        n: source.n || { type: 'number', default: 1, ui: { widget: 'number', label: '生成数量', min: 1, max: 1, step: 1 } },
+    };
+    if (model.parameterMode === 'resolution-ratio') {
+        properties.aspectRatio = {
             type: 'string',
             default: ratios[0],
             ui: { widget: 'select', label: '比例', options: ratios.map((value) => ({ label: value, value })) },
-        },
-        n: source.n || { type: 'number', default: 1, ui: { widget: 'number', label: '生成数量', min: 1, max: 1, step: 1 } },
-    };
+        };
+    } else {
+        const sizes = model.resolutionSizes?.[resolution] || {};
+        properties.size = {
+            type: 'string',
+            default: sizes[ratios[0]] || '',
+            ui: {
+                widget: 'select',
+                label: '比例 / 具体分辨率',
+                options: ratios.map((ratio) => ({
+                    label: `${ratio} · ${String(sizes[ratio] || '').replace('x', '×')}`,
+                    value: sizes[ratio],
+                })),
+            },
+        };
+    }
     if (model.qualityOptions?.length) {
         properties.quality = {
             type: 'string', default: model.defaultQuality || model.qualityOptions[0],
@@ -142,8 +158,13 @@ function normalizeFormValues(
         for (const [name, property] of Object.entries(properties)) {
             if (name === 'provider' || name === 'model' || !isPropertyVisible(name, properties, values)) continue;
             const options = resolveOptions(property, values);
-            const currentValue = values[name] ?? property.default ?? defaultValue(property);
-            if (!options.length || options.some((option) => sameValue(option.value, currentValue))) {
+            const rawValue = values[name] ?? property.default ?? defaultValue(property);
+            const currentValue = rawValue === 'custom' && options.some((option) => option.value === 'custom')
+                ? /^\d+x\d+$/i.test(String(property.default)) ? property.default : '1024x1024'
+                : rawValue;
+            const acceptsCustomValue = options.some((option) => option.value === 'custom')
+                && /^\d+x\d+$/i.test(String(currentValue));
+            if (!options.length || options.some((option) => sameValue(option.value, currentValue)) || acceptsCustomValue) {
                 nextValues[name] = currentValue;
                 continue;
             }
@@ -164,6 +185,11 @@ function normalizeFormValues(
 function toWidget(name: string, property: CanvasSchemaProperty, values: Record<string, unknown>): WidgetableWidget {
     const common = { name, uiWeight: 12 };
     const options = resolveOptions(property, values);
+    const currentValue = String(values[name] ?? property.default ?? '');
+    const matchesPreset = options.some((option) => option.value !== 'custom' && sameValue(option.value, currentValue));
+    const usesCustomInput = options.some((option) => option.value === 'custom')
+        && (currentValue === 'custom' || (!matchesPreset && /^\d+x\d+$/i.test(currentValue)));
+    if (usesCustomInput) return { ...common, outputType: 'string', options: { required: false } };
     if (options.length) {
         return {
             ...common,
@@ -258,7 +284,7 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
     const connect = async (discover = false) => {
         setLoading(true);
         setError('');
-        setStatus(discover ? '正在查找玄上画布后端...' : '正在连接玄上画布...');
+        setStatus(discover ? '正在查找画布后端...' : '正在连接画布...');
         try {
             const resolvedUrl = discover ? await discoverCanvasBackend(draftUrl) : draftUrl.trim().replace(/\/+$/, '');
             const nextClient = new CanvasClient(resolvedUrl);
@@ -269,7 +295,7 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
             setBackendUrl(resolvedUrl);
             setDraftUrl(resolvedUrl);
             selectCatalogDefaults(nextProjects, nextCapabilities);
-            setStatus(`已连接玄上画布 ${serverStatus.version || ''}，发现 ${nextCapabilities.length} 个可用图片能力`.trim());
+            setStatus(`已连接画布 ${serverStatus.version || ''}，发现 ${nextCapabilities.length} 个可用图片能力`.trim());
         } catch (connectError) {
             setStatus('');
             setError(connectError instanceof Error ? connectError.message : String(connectError));
@@ -337,7 +363,7 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
     return (
         <Flex vertical gap={10} style={{ paddingTop: 8 }}>
             <Flex gap={6}>
-                <Input value={draftUrl} onChange={(event) => setDraftUrl(event.target.value)} placeholder="玄上画布后端地址" />
+                <Input value={draftUrl} onChange={(event) => setDraftUrl(event.target.value)} placeholder="画布后端地址" />
                 <Tooltip title="重新连接并刷新能力">
                     <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void connect(false)} />
                 </Tooltip>

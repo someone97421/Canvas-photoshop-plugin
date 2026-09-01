@@ -1,7 +1,7 @@
 {
   "id": "sd-ppp2-dev",
-  "name": "SD-PPP",
-  "version": "1.9.21",
+  "name": "canvas plugin",
+  "version": "2.0.13",
   "main": "sdppp/photoshop.html",
   "manifestVersion": 5,
   "host": {
@@ -39,7 +39,7 @@
       "type": "panel",
       "id": "sd-ppp",
       "label": {
-        "default": "sdppp"
+        "default": "画布插件"
       },
       "minimumSize": {
         "width": 330,
