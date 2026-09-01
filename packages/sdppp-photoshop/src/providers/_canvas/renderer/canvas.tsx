@@ -88,6 +88,29 @@ function defaultValues(capability: CanvasImageCapability, modelId: string): Reco
         .map(([name, property]) => [name, property.default ?? defaultValue(property)])) as Record<string, unknown>;
 }
 
+function sameValue(left: unknown, right: unknown): boolean {
+    return String(left ?? '') === String(right ?? '');
+}
+
+function isPropertyVisible(
+    name: string,
+    properties: Record<string, CanvasSchemaProperty>,
+    values: Record<string, unknown>,
+    resolving = new Set<string>(),
+): boolean {
+    const ui = properties[name]?.ui;
+    const condition = ui?.visibleWhen;
+    const hiddenCondition = ui?.hiddenWhen;
+    if (!condition && !hiddenCondition) return true;
+    if (resolving.has(name)) return false;
+    const nextResolving = new Set(resolving).add(name);
+    if (condition) {
+        if (properties[condition.field] && !isPropertyVisible(condition.field, properties, values, nextResolving)) return false;
+        if (!condition.values.some((value) => sameValue(value, values[condition.field]))) return false;
+    }
+    return !hiddenCondition?.values.some((value) => sameValue(value, values[hiddenCondition.field]));
+}
+
 function defaultValue(property: CanvasSchemaProperty): unknown {
     if (property.type === 'boolean') return false;
     if (property.type === 'number' || property.type === 'integer') return 0;
@@ -98,6 +121,44 @@ function resolveOptions(property: CanvasSchemaProperty, values: Record<string, u
     const dependency = property.ui?.dependencies;
     if (!dependency) return property.ui?.options || [];
     return dependency.mapping[String(values[dependency.field] || '')] || property.ui?.options || [];
+}
+
+function normalizeFormValues(
+    capability: CanvasImageCapability,
+    modelId: string,
+    sourceValues: Record<string, unknown>,
+): { properties: Record<string, CanvasSchemaProperty>; values: Record<string, unknown> } {
+    let values: Record<string, unknown> = { ...sourceValues, model: modelId };
+    let properties = documentedProperties(capability, modelId, values);
+    const maxPasses = Object.keys(properties).length + 1;
+
+    for (let pass = 0; pass < maxPasses; pass += 1) {
+        properties = documentedProperties(capability, modelId, values);
+        const nextValues: Record<string, unknown> = {
+            model: modelId,
+            ...(values[REFERENCE_IMAGES_FIELD] !== undefined ? { [REFERENCE_IMAGES_FIELD]: values[REFERENCE_IMAGES_FIELD] } : {}),
+        };
+
+        for (const [name, property] of Object.entries(properties)) {
+            if (name === 'provider' || name === 'model' || !isPropertyVisible(name, properties, values)) continue;
+            const options = resolveOptions(property, values);
+            const currentValue = values[name] ?? property.default ?? defaultValue(property);
+            if (!options.length || options.some((option) => sameValue(option.value, currentValue))) {
+                nextValues[name] = currentValue;
+                continue;
+            }
+            const defaultOption = options.find((option) => sameValue(option.value, property.default));
+            nextValues[name] = (defaultOption || options[0]).value;
+        }
+
+        const stable = Object.keys(values).length === Object.keys(nextValues).length
+            && Object.entries(nextValues).every(([name, value]) => sameValue(values[name], value));
+        values = nextValues;
+        if (stable) break;
+    }
+
+    properties = documentedProperties(capability, modelId, values);
+    return { properties, values };
 }
 
 function toWidget(name: string, property: CanvasSchemaProperty, values: Record<string, unknown>): WidgetableWidget {
@@ -127,7 +188,11 @@ function toWidget(name: string, property: CanvasSchemaProperty, values: Record<s
     return { ...common, outputType: 'string', options: { required: name === 'prompt' } };
 }
 
-function buildWidgets(capability: CanvasImageCapability, modelId: string, values: Record<string, unknown>): WidgetableNode[] {
+function buildWidgets(
+    capability: CanvasImageCapability,
+    properties: Record<string, CanvasSchemaProperty>,
+    values: Record<string, unknown>,
+): WidgetableNode[] {
     const nodes: WidgetableNode[] = [];
     const imageInput = capability.definition.inputs.find((input) => input.type === 'image');
     if (imageInput) {
@@ -147,8 +212,8 @@ function buildWidgets(capability: CanvasImageCapability, modelId: string, values
             uiWeightSum: 12,
         });
     }
-    Object.entries(documentedProperties(capability, modelId, values))
-        .filter(([name]) => name !== 'provider' && name !== 'model')
+    Object.entries(properties)
+        .filter(([name]) => name !== 'provider' && name !== 'model' && isPropertyVisible(name, properties, values))
         .forEach(([name, property]) => nodes.push({
             id: name,
             title: property.ui?.label || name,
@@ -228,7 +293,7 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
     })));
     const selectedModelKey = nodeType && modelId ? selectionKey(nodeType, modelId) : '';
     const valuesKey = projectId && selectedModelKey ? `${projectId}::${selectedModelKey}` : '';
-    const values = selectedCapability
+    const rawValues = selectedCapability
         ? {
             ...defaultValues(selectedCapability, modelId),
             model: modelId,
@@ -236,6 +301,9 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
             ...(commonValuesByProject[projectId] || {}),
         }
         : {};
+    const values = selectedCapability
+        ? normalizeFormValues(selectedCapability, modelId, rawValues).values
+        : rawValues;
 
     const preserveCommonValues = () => {
         if (!projectId) return;
@@ -345,7 +413,14 @@ function CanvasGenerationForm({
     const runControllerRef = useRef<AbortController | null>(null);
     const { waitAllUploadPasses, cancelAllUploads } = useUploadPasses();
     const downloadAndAppendImage = MainStore((state) => state.downloadAndAppendImage);
-    const widgets = useMemo(() => buildWidgets(capability, modelId, values), [capability, modelId, values]);
+    const normalizedForm = useMemo(
+        () => normalizeFormValues(capability, modelId, values),
+        [capability, modelId, values],
+    );
+    const widgets = useMemo(
+        () => buildWidgets(capability, normalizedForm.properties, normalizedForm.values),
+        [capability, normalizedForm],
+    );
 
     const run = async () => {
         setRunning(true);
@@ -359,11 +434,11 @@ function CanvasGenerationForm({
             await new Promise((resolve) => setTimeout(resolve, 100));
             if (runController.signal.aborted) throw new DOMException('Generation cancelled', 'AbortError');
             const storeState = canvasStore.getState();
-            const liveValues = {
+            const liveValues = normalizeFormValues(capability, modelId, {
                 ...values,
                 ...(storeState.valuesByModel[valuesKey] || {}),
                 ...(storeState.commonValuesByProject[projectId] || {}),
-            };
+            }).values;
             const referenceValue = liveValues[REFERENCE_IMAGES_FIELD];
             const assetIds = (Array.isArray(referenceValue) ? referenceValue : [referenceValue])
                 .map((item) => typeof item === 'string' ? item : (item as { url?: string } | null)?.url || '')
@@ -433,21 +508,22 @@ function CanvasGenerationForm({
             <WorkflowEditApiFormat
                 modelName={valuesKey}
                 nodes={widgets}
-                values={values}
+                values={normalizedForm.values}
                 errors={{}}
                 onWidgetChange={(_widgetIndex, value, fieldInfo) => {
                     const state = canvasStore.getState();
-                    if (COMMON_FIELDS.has(fieldInfo.id)) {
-                        setCommonValues(projectId, {
-                            ...(state.commonValuesByProject[projectId] || {}),
-                            [fieldInfo.id]: value,
-                        });
-                        return;
-                    }
-                    setValues(valuesKey, {
+                    const nextValues = normalizeFormValues(capability, modelId, {
+                        ...normalizedForm.values,
                         ...(state.valuesByModel[valuesKey] || {}),
+                        ...(state.commonValuesByProject[projectId] || {}),
                         [fieldInfo.id]: value,
-                    });
+                    }).values;
+                    setCommonValues(projectId, Object.fromEntries(
+                        Object.entries(nextValues).filter(([name]) => COMMON_FIELDS.has(name)),
+                    ));
+                    setValues(valuesKey, Object.fromEntries(
+                        Object.entries(nextValues).filter(([name]) => name !== 'model' && !COMMON_FIELDS.has(name)),
+                    ));
                 }}
             />
             {error && <Alert type="error" showIcon message={error} />}

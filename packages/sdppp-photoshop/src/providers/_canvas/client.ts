@@ -37,6 +37,14 @@ export interface CanvasSchemaProperty {
             field: string;
             mapping: Record<string, Array<{ label: string; value: string | number }>>;
         };
+        visibleWhen?: {
+            field: string;
+            values: Array<string | number | boolean>;
+        };
+        hiddenWhen?: {
+            field: string;
+            values: Array<string | number | boolean>;
+        };
     };
 }
 
