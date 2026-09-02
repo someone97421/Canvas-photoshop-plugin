@@ -5,12 +5,15 @@ import { readdir, stat, readFile, mkdir, unlink, copyFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import archiver from 'archiver';
+import { customizePhotoshopHost } from './customize-photoshop-host.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function packagePSCCX() {
   try {
+    await customizePhotoshopHost();
+
     // 获取脚本所在目录
     const scriptDir = __dirname;
     

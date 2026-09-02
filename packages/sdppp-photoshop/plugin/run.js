@@ -6,62 +6,6 @@ const _root = Symbol("_root");
 const _attachment = Symbol("_attachment");
 const _menuItems = Symbol("_menuItems");
 
-const CANVAS_BRAND_NAME = "这是一个画布";
-
-function findBrandEntry(element) {
-    let current = element;
-    while (current && current.nodeType === 1) {
-        const tagName = String(current.tagName || "").toLowerCase();
-        const role = current.getAttribute ? current.getAttribute("role") : "";
-        const className = String(current.className || "");
-        if (tagName === "button" || tagName === "a" || role === "button" || className.indexOf("cursor-pointer") >= 0) {
-            return current;
-        }
-        current = current.parentElement;
-    }
-    return element;
-}
-
-function hasCanvasBrandMarker(element) {
-    let current = element;
-    while (current && current.nodeType === 1) {
-        if (current.getAttribute && current.getAttribute("data-canvas-brand") === "true") return true;
-        current = current.parentElement;
-    }
-    return false;
-}
-
-function configureBrandLabel(root) {
-    try {
-        const visit = element => {
-            const children = element.childNodes || [];
-            for (let index = 0; index < children.length; index += 1) {
-                const node = children[index];
-                if (node.nodeType === 3 && String(node.textContent || "").trim().toLowerCase() === "sdppp") {
-                    node.textContent = CANVAS_BRAND_NAME;
-                    const brandEntry = findBrandEntry(element);
-                    if (brandEntry.setAttribute) brandEntry.setAttribute("data-canvas-brand", "true");
-                    if (brandEntry.style) brandEntry.style.cursor = "default";
-                    return true;
-                }
-                if (node.nodeType === 1 && visit(node)) return true;
-            }
-            return false;
-        };
-
-        visit(root);
-    } catch (error) {
-        console.warn("更新画布品牌名称失败", error);
-    }
-}
-
-document.addEventListener("click", event => {
-    if (!hasCanvasBrandMarker(event.target)) return;
-    event.preventDefault();
-    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-    else event.stopPropagation();
-}, true);
-
 class PanelController {
     constructor({ id, menuItems } = {}) {
         this[_id] = null;
@@ -90,18 +34,6 @@ class PanelController {
         // render entry
         // 渲染入口
         globalThis.sdpppX.__start__(this[_root]);
-        configureBrandLabel(this[_root]);
-        setTimeout(() => configureBrandLabel(this[_root]), 0);
-        setTimeout(() => configureBrandLabel(this[_root]), 250);
-
-        if (typeof MutationObserver === "function" && MutationObserver.prototype && MutationObserver.prototype.observe) {
-            try {
-                const observer = new MutationObserver(() => configureBrandLabel(this[_root]));
-                observer.observe(this[_root], { childList: true, subtree: true });
-            } catch (error) {
-                console.warn("监听画布品牌名称失败", error);
-            }
-        }
 
         return this[_root];
     }
