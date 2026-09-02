@@ -17,15 +17,24 @@ import {
     type CanvasDocumentedModel,
     type CanvasSchemaProperty,
 } from '../client';
+import {
+    applyInlineCustomSize,
+    aspectRatioForDocumentedSize,
+    findInlineCustomSizeField,
+    isPropertyVisible,
+    resolveOptions,
+    sameValue,
+} from './canvas-schema';
 import { canvasStore } from './canvas.store';
 
 const { Text } = Typography;
 const REFERENCE_IMAGES_FIELD = '__canvasReferenceImages';
-const SIZE_MODE_FIELD = '__canvasSizeMode';
+const LEGACY_SIZE_MODE_FIELD = '__canvasSizeMode';
 const CUSTOM_WIDTH_FIELD = '__canvasCustomWidth';
 const CUSTOM_HEIGHT_FIELD = '__canvasCustomHeight';
+const CUSTOM_SIZE_TARGET_FIELD = '__canvasCustomSizeTarget';
 const COMMON_FIELDS = new Set([REFERENCE_IMAGES_FIELD, 'prompt']);
-const UI_ONLY_FIELDS = new Set([SIZE_MODE_FIELD, CUSTOM_WIDTH_FIELD, CUSTOM_HEIGHT_FIELD]);
+const UI_ONLY_FIELDS = new Set([LEGACY_SIZE_MODE_FIELD, CUSTOM_WIDTH_FIELD, CUSTOM_HEIGHT_FIELD, CUSTOM_SIZE_TARGET_FIELD]);
 
 function selectionKey(nodeType: string, modelId: string): string {
     return `${nodeType}::${modelId}`;
@@ -46,122 +55,147 @@ function parseDimensions(value: unknown): { width: number; height: number } | nu
     return match ? { width: Number(match[1]), height: Number(match[2]) } : null;
 }
 
-function documentedProperties(capability: CanvasImageCapability, modelId: string, values: Record<string, unknown>) {
-    const model = documentedModel(capability, modelId);
-    if (!model) return capability.definition.dataSchema.properties || {};
+function schemaProperties(capability: CanvasImageCapability, modelId: string, values: Record<string, unknown>) {
     const source = capability.definition.dataSchema.properties || {};
+    const model = ['image-generation-green-goblin', 'image-generation-geeknow'].includes(capability.nodeType)
+        ? documentedModel(capability, modelId)
+        : undefined;
+    if (!model) return source;
     const resolutions = Object.keys(model.resolutionRatios || model.resolutionSizes || {});
+    if (!resolutions.length) return source;
     const rawResolution = String(values.resolution || '');
     const legacyCustomDimensions = model.supportsCustomSize ? parseDimensions(rawResolution) : null;
-    const requestedMode = String(values[SIZE_MODE_FIELD] || '');
-    const customActive = Boolean(model.supportsCustomSize && (
-        requestedMode ? requestedMode === 'custom' : rawResolution === 'custom' || legacyCustomDimensions
-    ));
-    const resolution = !customActive && resolutions.includes(rawResolution)
+    const resolution = resolutions.includes(rawResolution)
         ? rawResolution
         : model.defaultResolution && resolutions.includes(model.defaultResolution) ? model.defaultResolution : resolutions[0];
     const ratios = model.resolutionRatios?.[resolution] || Object.keys(model.resolutionSizes?.[resolution] || {});
     const customDimensions = legacyCustomDimensions || parseDimensions(values.size) || { width: 1024, height: 1024 };
-    const properties: Record<string, CanvasSchemaProperty> = { prompt: source.prompt };
+    const properties: Record<string, CanvasSchemaProperty> = { ...source };
 
-    if (model.supportsCustomSize) {
-        properties[SIZE_MODE_FIELD] = {
+    properties.resolution = {
+        ...source.resolution,
+        type: 'string',
+        default: model.defaultResolution && resolutions.includes(model.defaultResolution) ? model.defaultResolution : resolutions[0],
+        ui: {
+            ...source.resolution?.ui,
+            widget: 'select',
+            label: '分辨率',
+            options: [
+                ...resolutions.map((value) => ({ label: value, value })),
+                ...(model.supportsCustomSize ? [{ label: '自定义', value: 'custom' }] : []),
+            ],
+        },
+    };
+
+    if (model.parameterMode === 'resolution-ratio') {
+        properties.aspectRatio = {
+            ...source.aspectRatio,
             type: 'string',
-            default: customActive ? 'custom' : 'preset',
+            default: ratios[0],
             ui: {
+                ...source.aspectRatio?.ui,
                 widget: 'select',
-                label: '尺寸模式',
-                options: [
-                    { label: '分辨率档位 + 比例', value: 'preset' },
-                    { label: '自定义', value: 'custom' },
-                ],
+                label: '比例',
+                options: ratios.map((value) => ({ label: value, value })),
             },
         };
+        delete properties.size;
+    } else {
+        const optionMapping = Object.fromEntries(resolutions.map((resolutionOption) => {
+            const sizes = model.resolutionSizes?.[resolutionOption] || {};
+            return [resolutionOption, Object.entries(sizes).map(([ratio, size]) => ({
+                label: `${ratio} · ${String(size).replace('x', '×')}`,
+                value: size,
+            }))];
+        }));
+        const sizes = model.resolutionSizes?.[resolution] || {};
+        properties.size = {
+            ...source.size,
+            type: 'string',
+            default: sizes[ratios[0]] || '',
+            ui: {
+                ...source.size?.ui,
+                widget: 'select',
+                label: '比例 / 具体分辨率',
+                options: optionMapping[resolution] || [],
+                dependencies: { field: 'resolution', mapping: optionMapping },
+                ...(model.supportsCustomSize ? { hiddenWhen: { field: 'resolution', values: ['custom'] } } : {}),
+            },
+        };
+        delete properties.aspectRatio;
     }
-    if (customActive) {
+
+    if (model.supportsCustomSize) {
         properties[CUSTOM_WIDTH_FIELD] = {
             type: 'number',
             default: customDimensions.width,
-            ui: { widget: 'number', label: '宽度', min: 16, max: 3840, step: 16 },
+            ui: {
+                widget: 'number', label: '宽度', min: 16, max: 3840, step: 16,
+                visibleWhen: { field: 'resolution', values: ['custom'] },
+            },
         };
         properties[CUSTOM_HEIGHT_FIELD] = {
             type: 'number',
             default: customDimensions.height,
-            ui: { widget: 'number', label: '高度', min: 16, max: 3840, step: 16 },
+            ui: {
+                widget: 'number', label: '高度', min: 16, max: 3840, step: 16,
+                visibleWhen: { field: 'resolution', values: ['custom'] },
+            },
         };
-    } else {
-        properties.resolution = {
-            type: 'string',
-            default: resolution,
-            ui: { widget: 'select', label: '分辨率', options: resolutions.map((value) => ({ label: value, value })) },
-        };
-        if (model.parameterMode === 'resolution-ratio') {
-            properties.aspectRatio = {
-                type: 'string',
-                default: ratios[0],
-                ui: { widget: 'select', label: '比例', options: ratios.map((value) => ({ label: value, value })) },
-            };
-        } else {
-            const sizes = model.resolutionSizes?.[resolution] || {};
-            properties.size = {
-                type: 'string',
-                default: sizes[ratios[0]] || '',
-                ui: {
-                    widget: 'select',
-                    label: '比例 / 具体分辨率',
-                    options: ratios.map((ratio) => ({
-                        label: `${ratio} · ${String(sizes[ratio] || '').replace('x', '×')}`,
-                        value: sizes[ratio],
-                    })),
-                },
-            };
-        }
     }
 
-    properties.n = source.n || { type: 'number', default: 1, ui: { widget: 'number', label: '生成数量', min: 1, max: 1, step: 1 } };
     if (model.qualityOptions?.length) {
         properties.quality = {
+            ...source.quality,
             type: 'string', default: model.defaultQuality || model.qualityOptions[0],
-            ui: { widget: 'select', label: '质量', options: model.qualityOptions.map((value) => ({ label: value, value })) },
+            ui: { ...source.quality?.ui, widget: 'select', label: '质量', options: model.qualityOptions.map((value) => ({ label: value, value })) },
         };
-    }
+    } else delete properties.quality;
     if (model.responseFormats?.length) {
         properties.responseFormat = {
+            ...source.responseFormat,
             type: 'string', default: model.responseFormats[0],
-            ui: { widget: 'select', label: '响应格式', options: model.responseFormats.map((value) => ({ label: value, value })) },
+            ui: { ...source.responseFormat?.ui, widget: 'select', label: '响应格式', options: model.responseFormats.map((value) => ({ label: value, value })) },
         };
-    }
+    } else delete properties.responseFormat;
     return properties;
 }
 
 function defaultValues(capability: CanvasImageCapability, modelId: string): Record<string, unknown> {
-    const properties = documentedProperties(capability, modelId, {});
+    const properties = schemaProperties(capability, modelId, {});
     return Object.fromEntries(Object.entries(properties)
         .filter(([name]) => name !== 'provider' && name !== 'model')
         .map(([name, property]) => [name, property.default ?? defaultValue(property)])) as Record<string, unknown>;
 }
 
-function sameValue(left: unknown, right: unknown): boolean {
-    return String(left ?? '') === String(right ?? '');
-}
-
-function isPropertyVisible(
-    name: string,
+function customSizeTarget(
     properties: Record<string, CanvasSchemaProperty>,
     values: Record<string, unknown>,
-    resolving = new Set<string>(),
-): boolean {
-    const ui = properties[name]?.ui;
-    const condition = ui?.visibleWhen;
-    const hiddenCondition = ui?.hiddenWhen;
-    if (!condition && !hiddenCondition) return true;
-    if (resolving.has(name)) return false;
-    const nextResolving = new Set(resolving).add(name);
-    if (condition) {
-        if (properties[condition.field] && !isPropertyVisible(condition.field, properties, values, nextResolving)) return false;
-        if (!condition.values.some((value) => sameValue(value, values[condition.field]))) return false;
-    }
-    return !hiddenCondition?.values.some((value) => sameValue(value, values[hiddenCondition.field]));
+): string | undefined {
+    return findInlineCustomSizeField(properties, values, values[CUSTOM_SIZE_TARGET_FIELD]);
+}
+
+function withCustomSizeInputs(
+    properties: Record<string, CanvasSchemaProperty>,
+    values: Record<string, unknown>,
+): { properties: Record<string, CanvasSchemaProperty>; target?: string } {
+    const target = customSizeTarget(properties, values);
+    if (!target || properties[CUSTOM_WIDTH_FIELD] || properties[CUSTOM_HEIGHT_FIELD]) return { properties, target };
+    const dimensions = parseDimensions(values[target]) || { width: 1024, height: 1024 };
+    return {
+        target,
+        properties: {
+            ...properties,
+            [CUSTOM_WIDTH_FIELD]: {
+                type: 'number', default: dimensions.width,
+                ui: { widget: 'number', label: '宽度', min: 16, max: 3840, step: 16 },
+            },
+            [CUSTOM_HEIGHT_FIELD]: {
+                type: 'number', default: dimensions.height,
+                ui: { widget: 'number', label: '高度', min: 16, max: 3840, step: 16 },
+            },
+        },
+    };
 }
 
 function defaultValue(property: CanvasSchemaProperty): unknown {
@@ -170,35 +204,42 @@ function defaultValue(property: CanvasSchemaProperty): unknown {
     return '';
 }
 
-function resolveOptions(property: CanvasSchemaProperty, values: Record<string, unknown>) {
-    const dependency = property.ui?.dependencies;
-    if (!dependency) return property.ui?.options || [];
-    return dependency.mapping[String(values[dependency.field] || '')] || property.ui?.options || [];
-}
-
 function normalizeFormValues(
     capability: CanvasImageCapability,
     modelId: string,
     sourceValues: Record<string, unknown>,
 ): { properties: Record<string, CanvasSchemaProperty>; values: Record<string, unknown> } {
     let values: Record<string, unknown> = { ...sourceValues, model: modelId };
-    let properties = documentedProperties(capability, modelId, values);
+    const model = documentedModel(capability, modelId);
+    const legacyCustomDimensions = model?.supportsCustomSize ? parseDimensions(values.resolution) : null;
+    if (model?.supportsCustomSize && (values[LEGACY_SIZE_MODE_FIELD] === 'custom' || legacyCustomDimensions)) {
+        values.resolution = 'custom';
+        if (legacyCustomDimensions) {
+            values[CUSTOM_WIDTH_FIELD] = legacyCustomDimensions.width;
+            values[CUSTOM_HEIGHT_FIELD] = legacyCustomDimensions.height;
+        }
+    }
+    delete values[LEGACY_SIZE_MODE_FIELD];
+    let resolvedSchema = withCustomSizeInputs(schemaProperties(capability, modelId, values), values);
+    let properties = resolvedSchema.properties;
     const maxPasses = Object.keys(properties).length + 1;
 
     for (let pass = 0; pass < maxPasses; pass += 1) {
-        properties = documentedProperties(capability, modelId, values);
+        resolvedSchema = withCustomSizeInputs(schemaProperties(capability, modelId, values), values);
+        properties = resolvedSchema.properties;
         const nextValues: Record<string, unknown> = {
+            ...values,
             model: modelId,
-            ...(values[REFERENCE_IMAGES_FIELD] !== undefined ? { [REFERENCE_IMAGES_FIELD]: values[REFERENCE_IMAGES_FIELD] } : {}),
         };
+        if (resolvedSchema.target) nextValues[resolvedSchema.target] = 'custom';
 
         for (const [name, property] of Object.entries(properties)) {
-            if (name === 'provider' || name === 'model' || !isPropertyVisible(name, properties, values)) continue;
-            const options = resolveOptions(property, values);
-            const rawValue = values[name] ?? property.default ?? defaultValue(property);
-            const currentValue = rawValue === 'custom' && options.some((option) => option.value === 'custom')
-                ? /^\d+x\d+$/i.test(String(property.default)) ? property.default : '1024x1024'
-                : rawValue;
+            if (name === 'provider' || name === 'model') continue;
+            if (nextValues[name] === undefined) nextValues[name] = property.default ?? defaultValue(property);
+            if (!isPropertyVisible(name, properties, nextValues)) continue;
+            const options = resolveOptions(property, nextValues);
+            const rawValue = nextValues[name];
+            const currentValue = rawValue;
             const acceptsCustomValue = options.some((option) => option.value === 'custom')
                 && /^\d+x\d+$/i.test(String(currentValue));
             if (!options.length || options.some((option) => sameValue(option.value, currentValue)) || acceptsCustomValue) {
@@ -209,12 +250,23 @@ function normalizeFormValues(
             nextValues[name] = (defaultOption || options[0]).value;
         }
 
-        if (properties[CUSTOM_WIDTH_FIELD] && properties[CUSTOM_HEIGHT_FIELD]) {
+        if (properties[CUSTOM_WIDTH_FIELD] && properties[CUSTOM_HEIGHT_FIELD] && nextValues.resolution === 'custom') {
             const width = Math.round(Number(nextValues[CUSTOM_WIDTH_FIELD]) || 1024);
             const height = Math.round(Number(nextValues[CUSTOM_HEIGHT_FIELD]) || 1024);
             nextValues.resolution = 'custom';
             nextValues.size = `${width}x${height}`;
         }
+        if (resolvedSchema.target) {
+            nextValues[CUSTOM_SIZE_TARGET_FIELD] = resolvedSchema.target;
+        } else {
+            delete nextValues[CUSTOM_SIZE_TARGET_FIELD];
+        }
+        const aspectRatio = aspectRatioForDocumentedSize(
+            ['image-generation-green-goblin', 'image-generation-geeknow'].includes(capability.nodeType) ? model : undefined,
+            nextValues.resolution,
+            nextValues.size,
+        );
+        if (aspectRatio) nextValues.aspectRatio = aspectRatio;
 
         const stable = Object.keys(values).length === Object.keys(nextValues).length
             && Object.entries(nextValues).every(([name, value]) => sameValue(values[name], value));
@@ -222,7 +274,7 @@ function normalizeFormValues(
         if (stable) break;
     }
 
-    properties = documentedProperties(capability, modelId, values);
+    properties = withCustomSizeInputs(schemaProperties(capability, modelId, values), values).properties;
     return { properties, values };
 }
 
@@ -232,12 +284,7 @@ function toWidget(name: string, property: CanvasSchemaProperty, values: Record<s
         uiWeight: 12,
     };
     const options = resolveOptions(property, values);
-    const currentValue = String(values[name] ?? property.default ?? '');
-    const matchesPreset = options.some((option) => option.value !== 'custom' && sameValue(option.value, currentValue));
-    const usesCustomInput = options.some((option) => option.value === 'custom')
-        && (currentValue === 'custom' || (!matchesPreset && /^\d+x\d+$/i.test(currentValue)));
-    if (name !== SIZE_MODE_FIELD && usesCustomInput) return { ...common, outputType: 'string', options: { required: false } };
-    if (options.length) {
+    if (options.length || property.ui?.widget === 'select' || property.ui?.dependencies) {
         return {
             ...common,
             outputType: 'combo',
@@ -516,7 +563,12 @@ function CanvasGenerationForm({
             const assetIds = (Array.isArray(referenceValue) ? referenceValue : [referenceValue])
                 .map((item) => typeof item === 'string' ? item : (item as { url?: string } | null)?.url || '')
                 .filter(Boolean);
-            const nodeValues = { ...liveValues };
+            const nodeValues = applyInlineCustomSize(
+                liveValues,
+                liveValues[CUSTOM_SIZE_TARGET_FIELD],
+                liveValues[CUSTOM_WIDTH_FIELD],
+                liveValues[CUSTOM_HEIGHT_FIELD],
+            );
             delete nodeValues[REFERENCE_IMAGES_FIELD];
             delete nodeValues.model;
             UI_ONLY_FIELDS.forEach((field) => delete nodeValues[field]);
@@ -586,10 +638,17 @@ function CanvasGenerationForm({
                 errors={{}}
                 onWidgetChange={(_widgetIndex, value, fieldInfo) => {
                     const state = canvasStore.getState();
+                    const changedProperty = normalizedForm.properties[fieldInfo.id];
+                    const changedOptions = changedProperty ? resolveOptions(changedProperty, normalizedForm.values) : [];
+                    const controlsCustomSize = fieldInfo.id !== 'resolution'
+                        && changedOptions.some((option) => option.value === 'custom');
                     const nextValues = normalizeFormValues(capability, modelId, {
                         ...normalizedForm.values,
                         ...(state.valuesByModel[valuesKey] || {}),
                         ...(state.commonValuesByProject[projectId] || {}),
+                        ...(controlsCustomSize ? {
+                            [CUSTOM_SIZE_TARGET_FIELD]: value === 'custom' ? fieldInfo.id : undefined,
+                        } : {}),
                         [fieldInfo.id]: value,
                     }).values;
                     setCommonValues(projectId, Object.fromEntries(
