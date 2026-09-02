@@ -36,6 +36,7 @@ export const MainStore = create<{
         url: string,
         source: string,
         fileName?: string,
+        thumbnail?: string,
         docId?: number,
         boundaryUri?: string | null,
         maskUri?: string | null,
@@ -60,6 +61,7 @@ export const MainStore = create<{
             url,
             source,
             fileName,
+            thumbnail: providedThumbnail,
             docId,
             boundaryUri,
             maskUri,
@@ -93,7 +95,7 @@ export const MainStore = create<{
 
         const resource = (primary as any)?.resource as string | undefined
         const handle = (primary as any)?.handle as ResourceHandle | null | undefined
-        let thumbnail = (primary as any)?.thumbnail as (string | undefined)
+        let thumbnail = ((primary as any)?.thumbnail as string | undefined) ?? providedThumbnail
 
         if (resource && !thumbnail) {
             try {

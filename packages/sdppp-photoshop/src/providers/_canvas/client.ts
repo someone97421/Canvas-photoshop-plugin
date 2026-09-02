@@ -108,6 +108,7 @@ export interface CanvasAsset {
     mimeType?: string;
     status: 'processing' | 'ready' | 'failed';
     error?: string;
+    thumbnailPath?: string | null;
 }
 
 export interface CanvasTaskData {
@@ -281,11 +282,11 @@ export class CanvasClient {
         return generationNodeId;
     }
 
-    async run(projectId: string, nodeId: string): Promise<Task<Array<{ url: string; fileName?: string }>>> {
+    async run(projectId: string, nodeId: string): Promise<Task<Array<{ url: string; fileName?: string; thumbnail?: string }>>> {
         const created = await this.request<CanvasTaskData>(`/api/projects/${encodeURIComponent(projectId)}/tasks`, {
             method: 'POST', body: { nodeId },
         });
-        const task = new Task<Array<{ url: string; fileName?: string }>>(created.id, {
+        const task = new Task<Array<{ url: string; fileName?: string; thumbnail?: string }>>(created.id, {
             statusGetter: async (taskId) => {
                 const current = await this.getTask(projectId, taskId);
                 return {
@@ -309,9 +310,14 @@ export class CanvasClient {
                     const outputAsset = outputPath ? undefined : await this.getAsset(projectId, assetId).catch(() => undefined);
                     const fileName = outputPath ? outputPath.split(/[\\/]/).pop() : outputAsset?.filename;
                     const outputUrl = `${this.baseUrl}/outputs/${encodeURIComponent(projectId)}/${encodeURIComponent(assetId)}`;
+                    const thumbnailPath = outputAsset?.thumbnailPath
+                        || fileName?.replace(/\.[^.]+$/, '_thumb.jpg');
                     return {
                         url: fileName ? `${outputUrl}?filename=${encodeURIComponent(fileName)}` : outputUrl,
                         fileName,
+                        thumbnail: thumbnailPath
+                            ? `${this.baseUrl}/thumbnails/${encodeURIComponent(projectId)}/${encodeURIComponent(thumbnailPath)}`
+                            : undefined,
                     };
                 }));
             },

@@ -107,8 +107,8 @@ export function registerCreateFromExternalAction(context: ImagingActionContext):
           const image = await Jimp.read(buffer);
           imgWidth = image.width;
           imgHeight = image.height;
-        } catch (error) {
-          thumbnailBase64 = buildGenericFileThumbnail(extension);
+        } catch {
+          // Keep the image resource usable even when this decoder cannot build a thumbnail.
         }
       } else if (VIDEO_EXTENSIONS.includes(extension)) {
         thumbnailBase64 = buildVideoThumbnail();

@@ -529,7 +529,7 @@ function CanvasGenerationForm({
     const [status, setStatus] = useState('');
     const [progress, setProgress] = useState(0);
     const [running, setRunning] = useState(false);
-    const activeTaskRef = useRef<Task<Array<{ url: string; fileName?: string }>> | null>(null);
+    const activeTaskRef = useRef<Task<Array<{ url: string; fileName?: string; thumbnail?: string }>> | null>(null);
     const runControllerRef = useRef<AbortController | null>(null);
     const { waitAllUploadPasses, cancelAllUploads } = useUploadPasses();
     const downloadAndAppendImage = MainStore((state) => state.downloadAndAppendImage);
@@ -569,6 +569,14 @@ function CanvasGenerationForm({
                 liveValues[CUSTOM_WIDTH_FIELD],
                 liveValues[CUSTOM_HEIGHT_FIELD],
             );
+            const submissionAspectRatio = aspectRatioForDocumentedSize(
+                ['image-generation-green-goblin', 'image-generation-geeknow'].includes(capability.nodeType)
+                    ? documentedModel(capability, modelId)
+                    : undefined,
+                nodeValues.resolution,
+                nodeValues.size,
+            );
+            if (submissionAspectRatio) nodeValues.aspectRatio = submissionAspectRatio;
             delete nodeValues[REFERENCE_IMAGES_FIELD];
             delete nodeValues.model;
             UI_ONLY_FIELDS.forEach((field) => delete nodeValues[field]);
@@ -596,6 +604,7 @@ function CanvasGenerationForm({
                 await Promise.all(outputs.map((output) => downloadAndAppendImage({
                     url: output.url,
                     fileName: output.fileName,
+                    thumbnail: output.thumbnail,
                     source: 'canvas',
                     docId,
                     boundaryUri,
