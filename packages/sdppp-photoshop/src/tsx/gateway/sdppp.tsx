@@ -50,8 +50,12 @@ export function SDPPPGateway() {
         />
     ) : null;
 
-    if (settingsOpen) {
-        return <Flex vertical gap={8} className="gateway-settings-page">
+    return <>
+        {/* Keep the generation renderer mounted while settings are open. Its task and polling state are local to the renderer. */}
+        <div style={{ display: settingsOpen ? 'none' : undefined }}>
+            {Renderer && <Renderer showingPreview={false} />}
+        </div>
+        {settingsOpen && <Flex vertical gap={8} className="gateway-settings-page">
             <Flex align="center" justify="space-between">
                 <span className="gateway-settings-page__title">设置</span>
                 <Tooltip title="返回生成页面">
@@ -66,8 +70,6 @@ export function SDPPPGateway() {
             </Flex>
             {providerSelector}
             {provider === 'Canvas' && Renderer ? <Renderer showingPreview={true} /> : null}
-        </Flex>;
-    }
-
-    return <>{Renderer && <Renderer showingPreview={false} />}</>;
+        </Flex>}
+    </>;
 }

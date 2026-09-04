@@ -4,8 +4,8 @@ import { fileURLToPath } from 'url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const hostPath = resolve(scriptDir, '../packages/sdppp-photoshop/plugin/sdppp/photoshop.html');
-const marker = '<!-- canvas-host-customized-v6 -->';
-const previousMarker = '<!-- canvas-host-customized-v5 -->';
+const marker = '<!-- canvas-host-customized-v8 -->';
+const previousMarker = '<!-- canvas-host-customized-v7 -->';
 
 const replacements = [
   {
@@ -64,25 +64,21 @@ export async function customizePhotoshopHost() {
 
 function addSettingsButton(html) {
   const headerEnd = "})]})]});";
-  const legacyButton = "jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button','title':'设置','onClick':()=>window.dispatchEvent(new Event('canvas-settings-open')),'className':'w-5 h-full flex items-center justify-center cursor-pointer','children':'⚙'})";
-  const icon = "jsxRuntimeExports['jsxs']('svg',{'width':0x10,'height':0x10,'viewBox':'0 0 24 24','fill':'none','stroke':'currentColor','strokeWidth':0x2,'strokeLinecap':'round','strokeLinejoin':'round','children':[jsxRuntimeExports['jsx']('path',{'d':'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z'}),jsxRuntimeExports['jsx']('circle',{'cx':0xc,'cy':0xc,'r':0x3})]})";
-  const eventButton = `jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button','title':'设置','aria-label':'设置','onClick':()=>window.dispatchEvent(new Event('canvas-settings-open')),'style':{'width':'28px','height':'100%','display':'flex','alignItems':'center','justifyContent':'center','padding':'0','border':'0','background':'transparent','color':'var(--uxp-host-text-color)','cursor':'pointer'},'children':${icon}})`;
-  const button = `jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button','title':'设置','aria-label':'设置','onClick':()=>mcpMesh['store']['setState']({'canvasSettingsOpenNonce':Date.now()}),'style':{'width':'28px','height':'100%','display':'flex','alignItems':'center','justifyContent':'center','padding':'0','border':'0','background':'transparent','color':'var(--uxp-host-text-color)','cursor':'pointer'},'children':${icon}})`;
+  const button = "jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button','title':'设置','aria-label':'设置','onClick':()=>mcpMesh['store']['setState']({'canvasSettingsOpenNonce':Date.now()}),'style':{'width':'52px','minWidth':'52px','height':'28px','minHeight':'28px','flexShrink':0x0,'boxSizing':'border-box','display':'flex','alignItems':'center','justifyContent':'center','textAlign':'center','whiteSpace':'nowrap','overflow':'visible','margin':'0 4px','padding':'0 8px','border':'0','borderRadius':'4px','backgroundColor':'#2f7d3d','color':'#fff','cursor':'pointer','fontSize':'12px','lineHeight':'28px'},'children':'设置'})";
   const headerStart = html.indexOf('function Header(){');
   const headerEndIndex = html.indexOf('const sdkNode', headerStart);
   if (headerStart < 0 || headerEndIndex < 0) throw new Error('无法应用 Photoshop 宿主定制：设置按钮 Header');
   const header = html.slice(headerStart, headerEndIndex);
-  if (header.includes(legacyButton)) {
+  const buttonStart = header.indexOf("jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button'");
+  if (buttonStart >= 0) {
+    const buttonEnd = header.indexOf(headerEnd, buttonStart);
+    if (buttonEnd < 0) throw new Error('无法应用 Photoshop 宿主定制：设置按钮结束位置');
     return html.slice(0, headerStart)
-      + header.replace(legacyButton, button)
+      + header.slice(0, buttonStart)
+      + button
+      + header.slice(buttonEnd + 2)
       + html.slice(headerEndIndex);
   }
-  if (header.includes(eventButton)) {
-    return html.slice(0, headerStart)
-      + header.replace(eventButton, button)
-      + html.slice(headerEndIndex);
-  }
-  if (header.includes("'id':'canvas-settings-button'")) return html;
   if (!header.includes(headerEnd)) throw new Error('无法应用 Photoshop 宿主定制：设置按钮位置');
   return html.slice(0, headerStart)
     + header.replace(headerEnd, `}),${button}]})]});`)

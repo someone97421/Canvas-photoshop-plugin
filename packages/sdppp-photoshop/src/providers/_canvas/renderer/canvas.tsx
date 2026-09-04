@@ -455,13 +455,6 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
     if (showingPreview) {
         return (
             <Flex vertical gap={10} className="canvas-settings-page" style={{ paddingTop: 8 }}>
-                <Select
-                    value={providerId || undefined}
-                    placeholder="选择画布 Provider"
-                    options={providers.map((provider) => ({ value: provider.id, label: provider.name }))}
-                    onChange={changeProvider}
-                    disabled={loading || !providers.length}
-                />
                 <Flex gap={6}>
                     <Input value={draftUrl} onChange={(event) => setDraftUrl(event.target.value)} placeholder="画布后端地址" />
                     <Tooltip title="重新连接并刷新能力">
@@ -484,6 +477,13 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
 
     return (
         <Flex vertical gap={10} style={{ paddingTop: 8 }}>
+            <Select
+                value={providerId || undefined}
+                placeholder="选择画布 Provider"
+                options={providers.map((provider) => ({ value: provider.id, label: provider.name }))}
+                onChange={changeProvider}
+                disabled={loading || !providers.length}
+            />
             <ModelSelector
                 value={selectedModelKey || undefined}
                 placeholder="选择画布模型"
