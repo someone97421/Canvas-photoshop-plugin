@@ -1,16 +1,21 @@
 import { useStore } from "zustand";
 import { Providers, PROVIDER_METADATA } from "../../providers";
 import { MainStore } from "../App.store";
-import { Select } from "antd";
-import { useEffect, useMemo } from "react";
-import { sdpppSDK, useTranslation } from '@sdppp/common';
-import { ProviderCardSelector } from "../components/ProviderCardSelector";
+import { Button, Flex, Select, Tooltip } from "antd";
+import { ArrowLeft } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { sdpppSDK } from '@sdppp/common';
 
 export function SDPPPGateway() {
-    const { t } = useTranslation()
     const provider = MainStore(state => state.provider)
+    const [settingsOpen, setSettingsOpen] = useState(false)
     // Select only the nested field we care about to avoid re-renders from whole-object identity changes
     const forceProvider = useStore(sdpppSDK.stores.PhotoshopStore, state => state.sdpppX?.["settings.forceProvider"])
+    const settingsOpenNonce = useStore(
+        sdpppSDK.stores.PhotoshopStore,
+        (state: any) => state.canvasSettingsOpenNonce as number | undefined,
+    )
+    const lastSettingsOpenNonce = useRef(settingsOpenNonce)
     // Removed tracking logs; keep minimal state
 
     const Renderer = useMemo(() => {
@@ -25,34 +30,44 @@ export function SDPPPGateway() {
         }
     }, [forceProvider])
 
+    useEffect(() => {
+        if (settingsOpenNonce && settingsOpenNonce !== lastSettingsOpenNonce.current) {
+            setSettingsOpen(true);
+        }
+        lastSettingsOpenNonce.current = settingsOpenNonce;
+    }, [settingsOpenNonce]);
+
     // Removed render tracking
     
-    return <>
-        {
-            !forceProvider ? (
-                !provider ? (
-                    <ProviderCardSelector
-                        selectedProvider={provider}
-                        onProviderSelect={(providerId) => MainStore.setState({ provider: providerId as (keyof typeof Providers) | '' })}
-                        availableProviders={Object.keys(Providers)}
-                    />
-                ) : (
-                    <Select
-                        className='app-select'
-                        showSearch={true}
-                        value={provider}
-                        onChange={value => MainStore.setState({ provider: value as (keyof typeof Providers) | '' })}
+    const providerSelector = !forceProvider ? (
+        <Select
+            className="app-select"
+            showSearch={true}
+            value={provider || undefined}
+            placeholder="选择服务类型"
+            onChange={value => MainStore.setState({ provider: value as (keyof typeof Providers) | '' })}
+            options={Object.keys(Providers).map(key => ({ value: key, label: PROVIDER_METADATA[key].name }))}
+        />
+    ) : null;
+
+    if (settingsOpen) {
+        return <Flex vertical gap={8} className="gateway-settings-page">
+            <Flex align="center" justify="space-between">
+                <span className="gateway-settings-page__title">设置</span>
+                <Tooltip title="返回生成页面">
+                    <Button
+                        type="text"
+                        icon={<ArrowLeft size={16} />}
+                        onClick={() => setSettingsOpen(false)}
                     >
-                        <Select.Option value="">{t('gateway.select_ai_service', 'Select AI Service')}</Select.Option>
-                        {
-                            Object.keys(Providers).map(key => (
-                                <Select.Option key={key} value={key}>{PROVIDER_METADATA[key].name}</Select.Option>
-                            ))
-                        }
-                    </Select>
-                )
-            ) : null
-        }
-        {Renderer && <Renderer showingPreview={false} />}
-    </>
+                        返回生成
+                    </Button>
+                </Tooltip>
+            </Flex>
+            {providerSelector}
+            {provider === 'Canvas' && Renderer ? <Renderer showingPreview={true} /> : null}
+        </Flex>;
+    }
+
+    return <>{Renderer && <Renderer showingPreview={false} />}</>;
 }

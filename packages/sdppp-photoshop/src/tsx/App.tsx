@@ -1,9 +1,7 @@
 import { useStore } from 'zustand'
 import './App.less'
 import { sdpppSDK } from '@sdppp/common'
-import { Button, ConfigProvider, Flex, Select, theme, Tooltip } from 'antd'
-import { Settings } from 'lucide-react'
-import { Providers } from '../providers'
+import { Button, ConfigProvider, Flex, theme } from 'antd'
 import { MainStore } from './App.store'
 import ImagePreviewWrapper from './components/ImagePreviewWrapper'
 import { SDPPPGateway } from './gateway/sdppp'
@@ -121,16 +119,6 @@ function AppContent({ psTheme, showingPreview, previewImageList, fontSize }: {
                     },
                 }
             }}>
-            <Flex className="app-toolbar" justify="flex-end" align="center">
-                <Tooltip title="打开画布设置">
-                    <Button
-                        type="text"
-                        aria-label="打开画布设置"
-                        icon={<Settings size={16} />}
-                        onClick={() => window.dispatchEvent(new Event('canvas-settings-open'))}
-                    />
-                </Tooltip>
-            </Flex>
             {!showingPreview && previewImageList.length ? <Flex gap={8} justify="center" align="center" style={{ marginBottom: 16 }}>
                 <Button size="small" type="primary" onClick={() => MainStore.setState({ showingPreview: true })}>
                     {t('preview.show', { count: previewImageList.length, defaultMessage: 'Show Preview ({count})' })}

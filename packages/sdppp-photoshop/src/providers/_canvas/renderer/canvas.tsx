@@ -3,7 +3,7 @@ import type { WidgetableNode, WidgetableWidget } from '@sdppp/common/schemas/sch
 import { buildBoundaryUri } from '@sdppp/resourcing/src/resource-uris';
 import { WidgetableProvider, WorkflowEditApiFormat } from '@sdppp/widgetable-ui';
 import { Alert, Button, Flex, Input, Progress, Select, Tooltip, Typography } from 'antd';
-import { ArrowLeft, CircleStop, RefreshCw } from 'lucide-react';
+import { CircleStop, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MainStore } from '../../../tsx/App.store';
 import { ModelSelector } from '../../base/components/ModelSelector';
@@ -352,14 +352,7 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
     const [status, setStatus] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [settingsOpen, setSettingsOpen] = useState(false);
     const client = useMemo(() => new CanvasClient(backendUrl), [backendUrl]);
-
-    useEffect(() => {
-        const openSettings = () => setSettingsOpen(true);
-        window.addEventListener('canvas-settings-open', openSettings);
-        return () => window.removeEventListener('canvas-settings-open', openSettings);
-    }, []);
 
     const selectCatalogDefaults = (
         nextProjects: typeof projects,
@@ -459,19 +452,9 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
         }
     };
 
-    if (settingsOpen) {
+    if (showingPreview) {
         return (
             <Flex vertical gap={10} className="canvas-settings-page" style={{ paddingTop: 8 }}>
-                <Flex align="center" justify="space-between">
-                    <Text strong>画布设置</Text>
-                    <Button
-                        type="text"
-                        icon={<ArrowLeft size={16} />}
-                        onClick={() => setSettingsOpen(false)}
-                    >
-                        返回生成
-                    </Button>
-                </Flex>
                 <Select
                     value={providerId || undefined}
                     placeholder="选择画布 Provider"
