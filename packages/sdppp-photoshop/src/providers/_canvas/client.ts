@@ -1,5 +1,6 @@
 import { sdpppSDK } from '@sdppp/common';
 import { Task } from '../base/Task';
+import { buildCanvasAssetCatalogPath, resolveCanvasOutputMetadata } from './output-metadata';
 
 export interface CanvasProject {
     id: string;
@@ -109,6 +110,8 @@ export interface CanvasAsset {
     status: 'processing' | 'ready' | 'failed';
     error?: string;
     thumbnailPath?: string | null;
+    width?: number;
+    height?: number;
 }
 
 export interface CanvasTaskData {
@@ -282,11 +285,23 @@ export class CanvasClient {
         return generationNodeId;
     }
 
-    async run(projectId: string, nodeId: string): Promise<Task<Array<{ url: string; fileName?: string; thumbnail?: string }>>> {
+    async run(projectId: string, nodeId: string): Promise<Task<Array<{
+        url: string;
+        fileName?: string;
+        thumbnail?: string;
+        width?: number;
+        height?: number;
+    }>>> {
         const created = await this.request<CanvasTaskData>(`/api/projects/${encodeURIComponent(projectId)}/tasks`, {
             method: 'POST', body: { nodeId },
         });
-        const task = new Task<Array<{ url: string; fileName?: string; thumbnail?: string }>>(created.id, {
+        const task = new Task<Array<{
+            url: string;
+            fileName?: string;
+            thumbnail?: string;
+            width?: number;
+            height?: number;
+        }>>(created.id, {
             statusGetter: async (taskId) => {
                 const current = await this.getTask(projectId, taskId);
                 return {
@@ -304,20 +319,22 @@ export class CanvasClient {
                 const primaryId = completed.result?.primaryOutputAssetId;
                 const orderedIds = primaryId ? [primaryId, ...outputIds.filter((id) => id !== primaryId)] : outputIds;
                 if (!orderedIds.length) throw new Error('Canvas 任务成功，但没有返回图片资产');
+                const generatedAssets = await this.listAssets(projectId, true).catch(() => []);
+                const generatedAssetById = new Map(generatedAssets.map((asset) => [asset.id, asset]));
                 return Promise.all(orderedIds.map(async (assetId) => {
                     const index = outputIds.indexOf(assetId);
                     const outputPath = index >= 0 ? completed.result?.outputPaths[index] : undefined;
-                    const outputAsset = outputPath ? undefined : await this.getAsset(projectId, assetId).catch(() => undefined);
-                    const fileName = outputPath ? outputPath.split(/[\\/]/).pop() : outputAsset?.filename;
+                    const outputAsset = generatedAssetById.get(assetId);
+                    const metadata = resolveCanvasOutputMetadata(outputPath, outputAsset);
                     const outputUrl = `${this.baseUrl}/outputs/${encodeURIComponent(projectId)}/${encodeURIComponent(assetId)}`;
-                    const thumbnailPath = outputAsset?.thumbnailPath
-                        || fileName?.replace(/\.[^.]+$/, '_thumb.jpg');
                     return {
-                        url: fileName ? `${outputUrl}?filename=${encodeURIComponent(fileName)}` : outputUrl,
-                        fileName,
-                        thumbnail: thumbnailPath
-                            ? `${this.baseUrl}/thumbnails/${encodeURIComponent(projectId)}/${encodeURIComponent(thumbnailPath)}`
+                        url: metadata.fileName ? `${outputUrl}?filename=${encodeURIComponent(metadata.fileName)}` : outputUrl,
+                        fileName: metadata.fileName,
+                        thumbnail: metadata.thumbnailPath
+                            ? `${this.baseUrl}/thumbnails/${encodeURIComponent(projectId)}/${encodeURIComponent(metadata.thumbnailPath)}`
                             : undefined,
+                        width: metadata.width,
+                        height: metadata.height,
                     };
                 }));
             },
@@ -342,6 +359,10 @@ export class CanvasClient {
 
     private getTask(projectId: string, taskId: string): Promise<CanvasTaskData> {
         return this.request(`/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}`);
+    }
+
+    private listAssets(projectId: string, includeGenerated = false): Promise<CanvasAsset[]> {
+        return this.request(buildCanvasAssetCatalogPath(projectId, includeGenerated));
     }
 
     private getAsset(projectId: string, assetId: string): Promise<CanvasAsset> {

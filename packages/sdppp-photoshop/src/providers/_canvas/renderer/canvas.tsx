@@ -529,7 +529,13 @@ function CanvasGenerationForm({
     const [status, setStatus] = useState('');
     const [progress, setProgress] = useState(0);
     const [running, setRunning] = useState(false);
-    const activeTaskRef = useRef<Task<Array<{ url: string; fileName?: string; thumbnail?: string }>> | null>(null);
+    const activeTaskRef = useRef<Task<Array<{
+        url: string;
+        fileName?: string;
+        thumbnail?: string;
+        width?: number;
+        height?: number;
+    }>> | null>(null);
     const runControllerRef = useRef<AbortController | null>(null);
     const { waitAllUploadPasses, cancelAllUploads } = useUploadPasses();
     const downloadAndAppendImage = MainStore((state) => state.downloadAndAppendImage);
@@ -605,6 +611,8 @@ function CanvasGenerationForm({
                     url: output.url,
                     fileName: output.fileName,
                     thumbnail: output.thumbnail,
+                    width: output.width,
+                    height: output.height,
                     source: 'canvas',
                     docId,
                     boundaryUri,
