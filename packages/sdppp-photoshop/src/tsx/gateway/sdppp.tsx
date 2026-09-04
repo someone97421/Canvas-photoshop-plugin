@@ -18,7 +18,6 @@ export function SDPPPGateway() {
         const key = provider
         return key && Providers[key as keyof typeof Providers] ? Providers[key as keyof typeof Providers].Renderer : null
     }, [provider])
-    const showingPreview = MainStore(state => state.showingPreview)
     useEffect(()=> {
         if (forceProvider && forceProvider !== provider) {
             const mapped = forceProvider === 'Google' ? 'CustomAPI' : forceProvider
@@ -30,7 +29,7 @@ export function SDPPPGateway() {
     
     return <>
         {
-            !showingPreview && !forceProvider ? (
+            !forceProvider ? (
                 !provider ? (
                     <ProviderCardSelector
                         selectedProvider={provider}
@@ -54,6 +53,6 @@ export function SDPPPGateway() {
                 )
             ) : null
         }
-        {Renderer && <Renderer showingPreview={showingPreview} />}
+        {Renderer && <Renderer showingPreview={false} />}
     </>
 }

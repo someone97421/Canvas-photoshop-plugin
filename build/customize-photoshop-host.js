@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const hostPath = resolve(scriptDir, '../packages/sdppp-photoshop/plugin/sdppp/photoshop.html');
-const marker = '<!-- canvas-host-customized-v3 -->';
+const marker = '<!-- canvas-host-customized-v4 -->';
+const previousMarker = '<!-- canvas-host-customized-v3 -->';
 
 const replacements = [
   {
@@ -30,6 +31,12 @@ export async function customizePhotoshopHost() {
   let html = await readFile(hostPath, 'utf8');
   if (html.includes(marker)) return;
 
+  if (html.includes(previousMarker)) {
+    html = addSettingsButton(html).replace(previousMarker, marker);
+    await writeFile(hostPath, html);
+    return;
+  }
+
   for (const replacement of replacements) {
     if (!html.includes(replacement.before)) {
       throw new Error(`无法应用 Photoshop 宿主定制：${replacement.name}`);
@@ -51,5 +58,20 @@ export async function customizePhotoshopHost() {
   html = html.replace(mainSection, `${main}sdpppX[`);
 
   html = html.replace('<head>', `<head>\n${marker}`);
+  html = addSettingsButton(html);
   await writeFile(hostPath, html);
+}
+
+function addSettingsButton(html) {
+  const headerEnd = "})]})]});";
+  const button = "jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button','title':'设置','onClick':()=>window.dispatchEvent(new Event('canvas-settings-open')),'className':'w-5 h-full flex items-center justify-center cursor-pointer','children':'⚙'})";
+  const headerStart = html.indexOf('function Header(){');
+  const headerEndIndex = html.indexOf('const sdkNode', headerStart);
+  if (headerStart < 0 || headerEndIndex < 0) throw new Error('无法应用 Photoshop 宿主定制：设置按钮 Header');
+  const header = html.slice(headerStart, headerEndIndex);
+  if (header.includes("'id':'canvas-settings-button'")) return html;
+  if (!header.includes(headerEnd)) throw new Error('无法应用 Photoshop 宿主定制：设置按钮位置');
+  return html.slice(0, headerStart)
+    + header.replace(headerEnd, `}),${button}]})]});`)
+    + html.slice(headerEndIndex);
 }

@@ -3,7 +3,7 @@ import type { WidgetableNode, WidgetableWidget } from '@sdppp/common/schemas/sch
 import { buildBoundaryUri } from '@sdppp/resourcing/src/resource-uris';
 import { WidgetableProvider, WorkflowEditApiFormat } from '@sdppp/widgetable-ui';
 import { Alert, Button, Flex, Input, Progress, Select, Tooltip, Typography } from 'antd';
-import { CircleStop, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CircleStop, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MainStore } from '../../../tsx/App.store';
 import { ModelSelector } from '../../base/components/ModelSelector';
@@ -352,7 +352,14 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
     const [status, setStatus] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const client = useMemo(() => new CanvasClient(backendUrl), [backendUrl]);
+
+    useEffect(() => {
+        const openSettings = () => setSettingsOpen(true);
+        window.addEventListener('canvas-settings-open', openSettings);
+        return () => window.removeEventListener('canvas-settings-open', openSettings);
+    }, []);
 
     const selectCatalogDefaults = (
         nextProjects: typeof projects,
@@ -452,30 +459,48 @@ export default function CanvasRenderer({ showingPreview }: { showingPreview: boo
         }
     };
 
-    if (showingPreview) return null;
+    if (settingsOpen) {
+        return (
+            <Flex vertical gap={10} className="canvas-settings-page" style={{ paddingTop: 8 }}>
+                <Flex align="center" justify="space-between">
+                    <Text strong>画布设置</Text>
+                    <Button
+                        type="text"
+                        icon={<ArrowLeft size={16} />}
+                        onClick={() => setSettingsOpen(false)}
+                    >
+                        返回生成
+                    </Button>
+                </Flex>
+                <Select
+                    value={providerId || undefined}
+                    placeholder="选择画布 Provider"
+                    options={providers.map((provider) => ({ value: provider.id, label: provider.name }))}
+                    onChange={changeProvider}
+                    disabled={loading || !providers.length}
+                />
+                <Flex gap={6}>
+                    <Input value={draftUrl} onChange={(event) => setDraftUrl(event.target.value)} placeholder="画布后端地址" />
+                    <Tooltip title="重新连接并刷新能力">
+                        <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void connect(false)} />
+                    </Tooltip>
+                </Flex>
+                <Select
+                    value={projectId || undefined}
+                    placeholder="选择节点保存到哪个画布项目"
+                    options={projects.map((project) => ({ value: project.id, label: project.name }))}
+                    onChange={setProjectId}
+                    disabled={loading || !projects.length}
+                />
+                {error && <Alert type="error" showIcon message={error} />}
+                {status && <Text type="secondary">{status}</Text>}
+                {!loading && capabilities.length === 0 && !error && <Alert type="warning" showIcon message="画布没有已配置且可用的图片 Provider" />}
+            </Flex>
+        );
+    }
 
     return (
         <Flex vertical gap={10} style={{ paddingTop: 8 }}>
-            <Flex gap={6}>
-                <Input value={draftUrl} onChange={(event) => setDraftUrl(event.target.value)} placeholder="画布后端地址" />
-                <Tooltip title="重新连接并刷新能力">
-                    <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void connect(false)} />
-                </Tooltip>
-            </Flex>
-            <Select
-                value={projectId || undefined}
-                placeholder="选择节点保存到哪个画布项目"
-                options={projects.map((project) => ({ value: project.id, label: project.name }))}
-                onChange={setProjectId}
-                disabled={loading || !projects.length}
-            />
-            <Select
-                value={providerId || undefined}
-                placeholder="选择画布 Provider"
-                options={providers.map((provider) => ({ value: provider.id, label: provider.name }))}
-                onChange={changeProvider}
-                disabled={loading || !providers.length}
-            />
             <ModelSelector
                 value={selectedModelKey || undefined}
                 placeholder="选择画布模型"
