@@ -97,32 +97,17 @@ function sdkPlugin() {
     name: 'sdk-plugin',
     writeBundle(options) {
       const outDir = options.dir || './plugin/webview';
-      // const sdkChunkPath = resolve(import.meta.dirname, './src/sdk/sdppp-ps-sdk-chunk.js');
-      // const targetPath = resolve(import.meta.dirname, outDir, 'sdppp-ps-sdk-chunk.js');
-
-      // // 复制 SDK chunk 文件到输出目录
-      // if (existsSync(sdkChunkPath)) {
-        try {
-          // copyFileSync(sdkChunkPath, targetPath);
-          console.log('✅ Copied sdppp-ps-sdk-chunk.js to output directory');
-
-          // 更新 HTML 文件中的引用路径
-          const htmlPath = resolve(import.meta.dirname, outDir, 'content.html');
-          if (existsSync(htmlPath)) {
-            let htmlContent = readFileSync(htmlPath, 'utf-8');
-            htmlContent = htmlContent.replace(
-              './plugin/webview/sdppp-ps-sdk-chunk.js',
-              './sdppp-ps-sdk-chunk.js'
-            );
-            writeFileSync(htmlPath, htmlContent, 'utf-8');
-            console.log('✅ Updated HTML reference to sdppp-ps-sdk-chunk.js');
-          }
-        } catch (error) {
-          console.error('❌ Error processing SDK chunk:', error);
-        }
-      // } else {
-      //   console.warn('⚠️  SDK chunk file not found:', sdkChunkPath);
-      // }
+      const sdkChunkPath = resolve(import.meta.dirname, './src/sdk/sdppp-ps-sdk-chunk.js');
+      const targetPath = resolve(import.meta.dirname, outDir, 'sdppp-ps-sdk-chunk.js');
+      if (!existsSync(sdkChunkPath)) throw new Error(`缺少 Photoshop SDK: ${sdkChunkPath}`);
+      copyFileSync(sdkChunkPath, targetPath);
+      const htmlPath = resolve(import.meta.dirname, outDir, 'content.html');
+      if (!existsSync(htmlPath)) throw new Error(`缺少 Webview 入口: ${htmlPath}`);
+      const htmlContent = readFileSync(htmlPath, 'utf-8').replace(
+        './plugin/webview/sdppp-ps-sdk-chunk.js', './sdppp-ps-sdk-chunk.js',
+      );
+      writeFileSync(htmlPath, htmlContent, 'utf-8');
+      console.log('✅ 已复制 Photoshop SDK 并更新 Webview 引用');
     }
   };
 }

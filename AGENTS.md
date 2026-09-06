@@ -4,10 +4,10 @@
 
 ## 改造目标
 
-- 把本插件改造成 `E:\CodingProject\XuanshangCanvasV2轻量重构` 的配套 Photoshop 插件：连接画布后端、调用画布生成任务并把结果送回 Photoshop。
+- 把本插件改造成画布项目的配套 Photoshop 插件：连接画布后端、调用画布生成任务并把结果送回 Photoshop。
 - 必须保留现有 ComfyUI 与 RunningHub 能力；新增画布原生支持时使用独立适配层，不要把现有 Socket.IO 协议直接改造成画布协议。
 - 以当前 2.0 源码为基底，不为旧版 1.x 架构新增兼容代码，除非现有 Legacy ComfyUI 节点确实依赖它。
-- 画布契约以本机 `E:\CodingProject\XuanshangCanvasV2轻量重构` 的可执行源码为准，不以远端 README、历史文档或猜测为准。涉及接口时先读该仓库的 `AGENTS.md`、`apps/server/src/index.ts`、对应 `routes/` 和 `packages/shared/src/index.ts`。
+- 画布契约以本机画布源码仓库的可执行源码为准，不以远端 README、历史文档或猜测为准。涉及接口时先读该仓库的 `AGENTS.md`、`apps/server/src/index.ts`、对应 `routes/` 和 `packages/shared/src/index.ts`。
 
 ## 真实边界
 
@@ -36,6 +36,13 @@
 - `packages/cbm-calculator/`：内容、边界、遮罩几何计算。
 - `build/build.js`：Monorepo 构建编排；`build/package-psccx.js`：从完整 `packages/sdppp-photoshop/plugin/` 打包 `static/sd-ppp2_PS.ccx`。
 - 根目录 `typescripts/`、`sdppp_python/`、`javascript/`：发布仓库中的 ComfyUI 扩展、共享旧协议和 Python 后端，仍由一般分发包收录。
+
+## 画布源码定位
+
+- 画布仓库在不同电脑上的路径不同，禁止在文档、业务代码或脚本中写死个人绝对路径。
+- 优先使用当前用户明确指定的仓库位置；否则读取本机环境变量 `CANVAS_SOURCE_ROOT`，再查找本仓库同级的 `XuanshangCanvas-GO` / `XuanshangCanvasV2轻量重构` 目录。
+- 候选目录必须存在 `AGENTS.md`、`apps/server/src/index.ts`、`packages/shared/src/index.ts`，读取后核对当前工作区与接口；多候选且无法确认时一次性询问用户。
+- `CANVAS_SOURCE_ROOT` 仅用于开发时查阅配套源码，不是后端网络地址。实际连接仍使用用户设置或启动器发现的地址。
 
 ## XuanshangCanvas 集成
 

@@ -1,3 +1,6 @@
+import { CanvasSettings } from '../../providers/_canvas/renderer/canvas-settings';
+import { CanvasTaskPanel } from '../../providers/_canvas/renderer/canvas-task-panel';
+import { canvasRunStore } from '../../providers/_canvas/renderer/canvas-run';
 import { useStore } from "zustand";
 import { Providers, PROVIDER_METADATA } from "../../providers";
 import { MainStore } from "../App.store";
@@ -7,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { sdpppSDK } from '@sdppp/common';
 
 export function SDPPPGateway() {
+    const preparing = canvasRunStore(state => state.preparing)
     const provider = MainStore(state => state.provider)
     const [settingsOpen, setSettingsOpen] = useState(false)
     // Select only the nested field we care about to avoid re-renders from whole-object identity changes
@@ -24,11 +28,11 @@ export function SDPPPGateway() {
         return key && Providers[key as keyof typeof Providers] ? Providers[key as keyof typeof Providers].Renderer : null
     }, [provider])
     useEffect(()=> {
-        if (forceProvider && forceProvider !== provider) {
+        if (!preparing && forceProvider && forceProvider !== provider) {
             const mapped = forceProvider === 'Google' ? 'CustomAPI' : forceProvider
             MainStore.setState({ provider: mapped as (keyof typeof Providers) | '' })
         }
-    }, [forceProvider])
+    }, [forceProvider, preparing])
 
     useEffect(() => {
         if (settingsOpenNonce && settingsOpenNonce !== lastSettingsOpenNonce.current) {
@@ -42,6 +46,7 @@ export function SDPPPGateway() {
     const providerSelector = !forceProvider ? (
         <Select
             className="app-select"
+            disabled={preparing}
             showSearch={true}
             value={provider || undefined}
             placeholder="选择服务类型"
@@ -51,7 +56,7 @@ export function SDPPPGateway() {
     ) : null;
 
     return <>
-        {/* Keep the generation renderer mounted while settings are open. Its task and polling state are local to the renderer. */}
+        {/* 设置只编辑配置；生成表单保持挂载，任务状态由独立控制器管理。 */}
         <div style={{ display: settingsOpen ? 'none' : undefined }}>
             {Renderer && <Renderer showingPreview={false} />}
         </div>
@@ -69,7 +74,8 @@ export function SDPPPGateway() {
                 </Tooltip>
             </Flex>
             {providerSelector}
-            {provider === 'Canvas' && Renderer ? <Renderer showingPreview={true} /> : null}
+            {provider === 'Canvas' ? <CanvasSettings /> : null}
         </Flex>}
+        <CanvasTaskPanel />
     </>;
 }

@@ -23,6 +23,14 @@ async function packagePSCCX() {
     const zipPath = join(staticDir, 'sd-ppp2_PS.zip');
     const ccxPath = join(staticDir, 'sd-ppp2_PS.ccx');
     
+    // 宿主壳和 SDK 缺失时阻止交付仅包含 React bundle 的无效安装包。
+    const manifest = JSON.parse(await readFile(join(pluginDir, 'manifest.json'), 'utf8'));
+    for (const relative of ['run.js', manifest.main, 'webview/content.html', 'webview/content.js', 'webview/sdppp-ps-sdk-chunk.js']) {
+      if (!relative || !(await stat(join(pluginDir, relative))).isFile()) {
+        throw new Error(`Photoshop 安装包缺少必需文件: ${relative}`);
+      }
+    }
+
     console.log('开始打包 Photoshop 插件...');
     console.log(`插件目录: ${pluginDir}`);
     console.log(`输出目录: ${staticDir}`);

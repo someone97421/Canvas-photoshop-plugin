@@ -65,6 +65,8 @@ export interface CanvasImageCapability {
     definition: CanvasNodeDefinition;
     defaults?: Record<string, unknown>;
     documentedModels?: CanvasDocumentedModel[];
+    schemaVersion?: number;
+    definitionsByModel?: Record<string, CanvasNodeDefinition>;
 }
 
 export interface CanvasDocumentedModel {
@@ -122,6 +124,7 @@ export interface CanvasTaskData {
     modelId: string;
     status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
     progress: number;
+    progressPhase?: string;
     result: {
         outputAssetIds: string[];
         outputPaths: string[];
@@ -266,7 +269,6 @@ export class CanvasClient {
                 nodeType: capability.nodeType,
             },
             data: {
-                ...capability.defaults,
                 ...values,
                 nodeType: capability.nodeType,
                 provider: capability.provider.id,
@@ -320,7 +322,7 @@ export class CanvasClient {
                 const orderedIds = primaryId ? [primaryId, ...outputIds.filter((id) => id !== primaryId)] : outputIds;
                 if (!orderedIds.length) throw new Error('Canvas 任务成功，但没有返回图片资产');
                 const generatedAssets = await this.listAssets(projectId, true).catch(() => []);
-                const generatedAssetById = new Map(generatedAssets.map((asset) => [asset.id, asset]));
+                const generatedAssetById = new Map<string, CanvasAsset>(generatedAssets.map((asset) => [asset.id, asset] as const));
                 return Promise.all(orderedIds.map(async (assetId) => {
                     const index = outputIds.indexOf(assetId);
                     const outputPath = index >= 0 ? completed.result?.outputPaths[index] : undefined;
@@ -371,7 +373,10 @@ export class CanvasClient {
 
     private statusMessage(task: CanvasTaskData): string {
         if (task.status === 'queued') return 'Canvas 任务排队中';
-        if (task.status === 'running') return `Canvas 生成中 (${task.progress}%)`;
+        if (task.status === 'running') {
+            const phase = ({ collecting: '正在收集资源', uploading: '正在上传资源', submitting: '正在提交 / 审核', polling: '正在生成', downloading: '正在下载结果' } as Record<string, string>)[task.progressPhase || ''];
+            return `${phase || 'Canvas 生成中'} (${task.progress}%)`;
+        }
         if (task.status === 'succeeded') return 'Canvas 生成完成';
         if (task.status === 'canceled') return 'Canvas 任务已取消';
         return task.result?.error || 'Canvas 生成失败';

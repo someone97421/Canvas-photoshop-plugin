@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from 'react';
+import { createContext, ReactNode, useContext, useState, useEffect } from 'react';
 import { t } from '@sdppp/common';
 import { z } from 'zod';
 import { createStore } from 'zustand';
@@ -24,7 +24,7 @@ interface UploadPassContextType {
   addUploadPass: (pass: UploadPass) => string;
   removeUploadPass: (pass: UploadPass) => void;
   cancelAllUploads: () => void;
-  waitAllUploadPasses: (signal?: AbortSignal) => Promise<void>;
+  waitAllUploadPasses: (signal?: AbortSignal) => Promise<string[]>;
 }
 
 const UploadPassContext = createContext<UploadPassContextType | undefined>(undefined);
@@ -34,7 +34,7 @@ interface UploadPassProviderProps {
   uploader: (uploadInput: UploadPassInput, signal?: AbortSignal) => Promise<string>;
 }
 
-const uploadPassesStore = createStore<{
+const createUploadPassesStore = () => createStore<{
   uploadPasses: UploadPass[];
   runningUploadPasses: { [id: string]: Promise<string> };
   abortControllers: { [id: string]: AbortController };
@@ -45,6 +45,10 @@ const uploadPassesStore = createStore<{
 }));
 
 export function UploadPassProvider({ children, uploader }: UploadPassProviderProps) {
+  const [uploadPassesStore] = useState(createUploadPassesStore);
+  useEffect(() => () => {
+    Object.values(uploadPassesStore.getState().abortControllers).forEach((controller) => controller.abort());
+  }, [uploadPassesStore]);
   const value: UploadPassContextType = {
     runUploadPassOnce: async (pass: UploadPass) => {
       if (!uploader) {
@@ -57,7 +61,8 @@ export function UploadPassProvider({ children, uploader }: UploadPassProviderPro
         try {
           const uploadInput = await pass.getUploadFile(abortController.signal);
           const fileURL = await uploader(uploadInput, abortController.signal);
-          if (pass.onUploaded && !abortController.signal.aborted) {
+          if (abortController.signal.aborted) throw new DOMException('Upload aborted', 'AbortError');
+          if (pass.onUploaded) {
             await pass.onUploaded(fileURL);
           }
           resolve(fileURL);
@@ -103,7 +108,6 @@ export function UploadPassProvider({ children, uploader }: UploadPassProviderPro
       const state = uploadPassesStore.getState();
       Object.values(state.abortControllers).forEach(controller => controller.abort());
       uploadPassesStore.setState(state => {
-        state.uploadPasses = [];
         state.runningUploadPasses = {};
         state.abortControllers = {};
         return state;
@@ -129,7 +133,11 @@ export function UploadPassProvider({ children, uploader }: UploadPassProviderPro
         }
       });
       const promisesFromRunningUploadPasses = Object.values(uploadPassesStore.getState().runningUploadPasses);
-      await Promise.all([...promisesFromUploadPasses, ...promisesFromRunningUploadPasses]);
+      // 等待整批收尾，避免首个失败提前释放表单，让剩余上传串入下一次生成。
+      const results = await Promise.allSettled([...promisesFromUploadPasses, ...promisesFromRunningUploadPasses]);
+      const failure = results.find((result) => result.status === 'rejected');
+      if (failure?.status === 'rejected') throw failure.reason;
+      return results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
     },
   };
 

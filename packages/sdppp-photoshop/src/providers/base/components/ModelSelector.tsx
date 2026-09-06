@@ -15,6 +15,7 @@ interface ModelSelectorProps {
     value?: string;
     placeholder?: string;
     loading?: boolean;
+    disabled?: boolean;
     loadError?: string;
     className?: string;
     
@@ -34,6 +35,7 @@ export function ModelSelector({
     value,
     placeholder,
     loading,
+    disabled,
     loadError,
     className = "renderer-model-select",
     options,
@@ -109,6 +111,7 @@ export function ModelSelector({
     const renderSelector = () => {
         return (
             <AutoComplete
+            disabled={disabled}
                 placeholder={placeholder}
                 value={inputValue || undefined}
                 onSearch={handleInputChange}

@@ -1,6 +1,6 @@
 import { Button, Tooltip } from 'antd';
 import { Minus, Plus } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 
 import { useWidgetText } from '../../context/PhotoshopWidgetContext';
 import { ImageSelector } from './ImageSelector';
@@ -48,21 +48,15 @@ export const MultiImageSelector: React.FC<MultiImageSelectorProps> = ({
   }, [limit, normalizedValue]);
 
   const [localValues, setLocalValues] = useState<string[]>(initialValues);
+  const localValuesRef = useRef(initialValues);
 
   useEffect(() => {
-    setLocalValues(prev => {
-      const desiredCount = Math.min(limit, Math.max(prev.length, normalizedValue.length, 1));
-      const next = Array.from({ length: desiredCount }, (_, index) => {
-        if (index < normalizedValue.length) {
-          return normalizedValue[index] ?? '';
-        }
-        return prev[index] ?? '';
-      });
-      if (next.length === prev.length && next.every((item, index) => item === prev[index])) {
-        return prev;
-      }
-      return next;
-    });
+    const prev = localValuesRef.current;
+    const count = Math.min(limit, Math.max(prev.length, normalizedValue.length, 1));
+    const next = Array.from({ length: count }, (_, index) => normalizedValue[index] ?? '');
+    if (next.length === prev.length && next.every((item, index) => item === prev[index])) return;
+    localValuesRef.current = next;
+    setLocalValues(next);
   }, [limit, normalizedValue]);
 
   const slots = useMemo(
@@ -89,49 +83,36 @@ export const MultiImageSelector: React.FC<MultiImageSelectorProps> = ({
   const handleSlotValueChange = useCallback(
     (index: number, slotValue: string[]) => {
       const normalized = (slotValue?.[0] ?? '').trim();
-      setLocalValues(prev => {
-        if (index < 0 || index >= prev.length) {
-          return prev;
-        }
-        const next = prev.slice();
-        if (next[index] === normalized) {
-          return prev;
-        }
-        next[index] = normalized;
-        if (normalized && index === next.length - 1 && next.length < limit) {
-          next.push('');
-        }
-        emitValue(next, next.length);
-        return next;
-      });
+      const prev = localValuesRef.current;
+      if (index < 0 || index >= prev.length || prev[index] === normalized) return;
+      const next = prev.slice();
+      next[index] = normalized;
+      if (normalized && index === next.length - 1 && next.length < limit) next.push('');
+      // 上传完成的 Promise 返回前同步通知父级，不能把提交数据回写放在 React updater 中。
+      localValuesRef.current = next;
+      setLocalValues(next);
+      emitValue(next, next.length);
     },
-    [emitValue],
+    [emitValue, limit],
   );
 
   const [slotStates, setSlotStates] = useState<Record<number, SlotUploadState>>({});
   const [errorDismissSignals, setErrorDismissSignals] = useState<Record<number, number>>({});
 
   const handleAddSlot = useCallback(() => {
-    setLocalValues(prev => {
-      if (prev.length >= limit) {
-        return prev;
-      }
-      const next = [...prev, ''];
-      return next;
-    });
+    const prev = localValuesRef.current;
+    if (prev.length >= limit) return;
+    const next = [...prev, ''];
+    localValuesRef.current = next;
+    setLocalValues(next);
   }, [limit]);
 
   const handleRemoveLastSlot = useCallback(() => {
-    setLocalValues(prev => {
-      if (prev.length <= 1) {
-        const next = [''];
-        emitValue(next, 1);
-        return next;
-      }
-      const next = prev.slice(0, prev.length - 1);
-      emitValue(next, next.length);
-      return next;
-    });
+    const prev = localValuesRef.current;
+    const next = prev.length <= 1 ? [''] : prev.slice(0, prev.length - 1);
+    localValuesRef.current = next;
+    setLocalValues(next);
+    emitValue(next, next.length);
   }, [emitValue]);
 
   const handleSlotUploadStateChange = useCallback((index: number, state: SlotUploadState) => {
@@ -212,9 +193,9 @@ export const MultiImageSelector: React.FC<MultiImageSelectorProps> = ({
     let progressCurrent = 0;
     let progressTotal = 0;
 
-    slots.forEach(index => {
+    for (const index of slots) {
       const state = slotStates[index];
-      if (!state) return;
+      if (!state) continue;
       if (state.status === 'error' && status !== 'error') {
         status = 'error';
         errorMessage = state.errorMessage ?? null;
@@ -224,7 +205,7 @@ export const MultiImageSelector: React.FC<MultiImageSelectorProps> = ({
         progressCurrent += state.progress?.current ?? 0;
         progressTotal += state.progress?.total ?? 0;
       }
-    });
+    }
 
     if (status !== 'uploading') {
       progressCurrent = 0;
@@ -283,7 +264,6 @@ export const MultiImageSelector: React.FC<MultiImageSelectorProps> = ({
             }}
             showActionButtons={showActionButtons}
             defaultAuto={false}
-            showUploadIndicator={false}
             externalErrorDismissSignal={errorDismissSignals[index] ?? 0}
             onUploadStateChange={state => {
               handleSlotUploadStateChange(index, state);
