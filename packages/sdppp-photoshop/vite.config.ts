@@ -2,6 +2,7 @@ import { remoteConfigLoader } from '@sdppp/vite-remote-config-loader/vite';
 import react from '@vitejs/plugin-react';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { createHash } from 'node:crypto';
 import { defineConfig } from 'vite';
 
 function reactDevOnlyPlugin() {
@@ -100,6 +101,10 @@ function sdkPlugin() {
       const sdkChunkPath = resolve(import.meta.dirname, './src/sdk/sdppp-ps-sdk-chunk.js');
       const targetPath = resolve(import.meta.dirname, outDir, 'sdppp-ps-sdk-chunk.js');
       if (!existsSync(sdkChunkPath)) throw new Error(`缺少 Photoshop SDK: ${sdkChunkPath}`);
+      // 上游 src/sdk 中曾保留旧协议版本；必须使用与当前宿主配套的发行 SDK。
+      const release = JSON.parse(readFileSync(resolve(import.meta.dirname, './src/sdk/sdk-release.json'), 'utf8'));
+      const digest = createHash('sha256').update(readFileSync(sdkChunkPath)).digest('hex');
+      if (digest !== release.sha256) throw new Error('Photoshop SDK 与已确认的宿主配套版本不一致，请同步核对 SDK 及 sdk-release.json');
       copyFileSync(sdkChunkPath, targetPath);
       const htmlPath = resolve(import.meta.dirname, outDir, 'content.html');
       if (!existsSync(htmlPath)) throw new Error(`缺少 Webview 入口: ${htmlPath}`);

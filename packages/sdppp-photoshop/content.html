@@ -6,6 +6,30 @@
     <title>画布插件</title>
   </head>
   <body>
+    <div id="startup-status" role="status" style="padding:16px;color:#ddd;font:13px sans-serif;white-space:pre-wrap">正在加载画布插件…</div>
+    <script>
+      (() => {
+        const status = document.getElementById('startup-status');
+        let stage = '加载界面脚本';
+        let completed = false;
+        const showError = (error) => {
+          if (completed) return;
+          clearTimeout(timer);
+          status.textContent = '画布插件启动失败（' + stage + '）\n' + String(error?.message || error) + '\n请关闭后重新打开插件；若仍失败，请反馈此提示。';
+        };
+        const timer = setTimeout(() => showError('等待启动响应超时'), 20000);
+        window.__canvasStartup = {
+          stage(value) { stage = value; status.textContent = '正在' + value + '…'; },
+          fail: showError,
+          done() { completed = true; clearTimeout(timer); status.remove(); }
+        };
+        window.addEventListener('error', (event) => {
+          const target = event.target;
+          showError(event.error || event.message || ('无法加载资源：' + (target?.src || target?.href || '未知资源')));
+        }, true);
+        window.addEventListener('unhandledrejection', (event) => showError(event.reason));
+      })();
+    </script>
     <div id="root"></div>
     <script src="./plugin/webview/sdppp-ps-sdk-chunk.js"></script>
     <script type="module" src="./src/index.tsx"></script>
