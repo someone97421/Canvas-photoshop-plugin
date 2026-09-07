@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>画布插件</title>
+    <title>逐帧加载 FrameLoading</title>
   </head>
   <body>
-    <div id="startup-status" role="status" style="padding:16px;color:#ddd;font:13px sans-serif;white-space:pre-wrap">正在加载画布插件…</div>
+    <div id="startup-status" role="status" style="padding:16px;color:#ddd;font:13px sans-serif;white-space:pre-wrap">正在加载逐帧加载 FrameLoading…</div>
     <script>
       (() => {
         const status = document.getElementById('startup-status');
@@ -15,7 +15,7 @@
         const showError = (error) => {
           if (completed) return;
           clearTimeout(timer);
-          status.textContent = '画布插件启动失败（' + stage + '）\n' + String(error?.message || error) + '\n请关闭后重新打开插件；若仍失败，请反馈此提示。';
+          status.textContent = '逐帧加载 FrameLoading启动失败（' + stage + '）\n' + String(error?.message || error) + '\n请关闭后重新打开插件；若仍失败，请反馈此提示。';
         };
         const timer = setTimeout(() => showError('等待启动响应超时'), 20000);
         window.__canvasStartup = {

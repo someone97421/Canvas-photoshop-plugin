@@ -40,7 +40,7 @@ export const Providers = {
         Renderer: CanvasRenderer,
         metadata: {
             id: 'Canvas',
-            name: '这是一个画布',
+            name: '逐帧加载 FrameLoading',
             description: '使用画布已配置的模型创建生成节点、运行任务并将结果送回 Photoshop',
             brandColor: '#d9d7d0',
             logoPath: CanvasLogo

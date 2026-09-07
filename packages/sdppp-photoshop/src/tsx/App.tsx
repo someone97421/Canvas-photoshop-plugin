@@ -41,7 +41,7 @@ function AppContent({ psTheme, showingPreview, previewImageList, fontSize }: {
             getPopupContainer={trigger => trigger?.parentElement || document.body}
             theme={{
                 token: {
-                    colorPrimary: '#34773d',
+                    colorPrimary: '#d9d9d9',
                     colorLink: 'var(--sdppp-host-text-color)',
                     colorLinkHover: 'var(--sdppp-widget-hover-text-color)',
                     colorLinkActive: 'var(--sdppp-host-text-color)',
@@ -106,6 +106,11 @@ function AppContent({ psTheme, showingPreview, previewImageList, fontSize }: {
                     },
                     Button: {
                         fontSize: fontSize,
+                        colorPrimary: '#d9d9d9',
+                        colorPrimaryHover: '#eeeeee',
+                        colorPrimaryActive: '#bfbfbf',
+                        primaryColor: '#262626',
+                        primaryShadow: 'none',
                         colorBgContainer: 'var(--sdppp-widget-background-color)',
                         colorText: 'var(--sdppp-host-text-color)',
                         colorBorder: 'var(--sdppp-widget-border-color)'

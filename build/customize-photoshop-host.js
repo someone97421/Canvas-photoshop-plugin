@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const hostPath = resolve(scriptDir, '../packages/sdppp-photoshop/plugin/sdppp/photoshop.html');
-const marker = '<!-- canvas-host-customized-v8 -->';
+const marker = '<!-- canvas-host-customized-v9 -->';
+const brandPreviousMarker = '<!-- canvas-host-customized-v8 -->';
 const previousMarker = '<!-- canvas-host-customized-v7 -->';
 
 const replacements = [
@@ -16,7 +17,7 @@ const replacements = [
   {
     name: '顶部品牌名称',
     before: "'children':_0x592a45})",
-    after: "'children':'这是一个画布'})",
+    after: "'children':'逐帧加载 FrameLoading'})",
   },
   {
     name: '制作人弹窗挂载',
@@ -31,8 +32,11 @@ export async function customizePhotoshopHost() {
   let html = await readFile(hostPath, 'utf8');
   if (html.includes(marker)) return;
 
-  if (html.includes(previousMarker)) {
-    html = addSettingsButton(html).replace(previousMarker, marker);
+  if (html.includes(previousMarker) || html.includes(brandPreviousMarker)) {
+    html = addSettingsButton(html)
+      .replace("'children':'这是一个画布'})", "'children':'逐帧加载 FrameLoading'})")
+      .replace(previousMarker, marker)
+      .replace(brandPreviousMarker, marker);
     await writeFile(hostPath, html);
     return;
   }
@@ -64,7 +68,7 @@ export async function customizePhotoshopHost() {
 
 function addSettingsButton(html) {
   const headerEnd = "})]})]});";
-  const button = "jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button','title':'设置','aria-label':'设置','onClick':()=>mcpMesh['store']['setState']({'canvasSettingsOpenNonce':Date.now()}),'style':{'width':'52px','minWidth':'52px','height':'28px','minHeight':'28px','flexShrink':0x0,'boxSizing':'border-box','display':'flex','alignItems':'center','justifyContent':'center','textAlign':'center','whiteSpace':'nowrap','overflow':'visible','margin':'0 4px','padding':'0 8px','border':'0','borderRadius':'4px','backgroundColor':'#2f7d3d','color':'#fff','cursor':'pointer','fontSize':'12px','lineHeight':'28px'},'children':'设置'})";
+  const button = "jsxRuntimeExports['jsx']('button',{'id':'canvas-settings-button','title':'设置','aria-label':'设置','onClick':()=>mcpMesh['store']['setState']({'canvasSettingsOpenNonce':Date.now()}),'style':{'width':'52px','minWidth':'52px','height':'28px','minHeight':'28px','flexShrink':0x0,'boxSizing':'border-box','display':'flex','alignItems':'center','justifyContent':'center','textAlign':'center','whiteSpace':'nowrap','overflow':'visible','margin':'0 4px','padding':'0 8px','border':'0','borderRadius':'4px','backgroundColor':'#d9d9d9','color':'#262626','cursor':'pointer','fontSize':'12px','lineHeight':'28px'},'children':'设置'})";
   const headerStart = html.indexOf('function Header(){');
   const headerEndIndex = html.indexOf('const sdkNode', headerStart);
   if (headerStart < 0 || headerEndIndex < 0) throw new Error('无法应用 Photoshop 宿主定制：设置按钮 Header');

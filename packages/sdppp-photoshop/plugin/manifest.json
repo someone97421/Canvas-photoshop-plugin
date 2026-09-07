@@ -1,7 +1,7 @@
 {
   "id": "sd-ppp2-dev",
-  "name": "canvas plugin",
-  "version": "2.0.25",
+  "name": "逐帧加载 FrameLoading",
+  "version": "2.0.26",
   "main": "sdppp/photoshop.html",
   "manifestVersion": 5,
   "host": {
@@ -39,7 +39,9 @@
       "type": "panel",
       "id": "sd-ppp",
       "label": {
-        "default": "画布插件"
+        "default": "FrameLoading",
+        "zh_CN": "逐帧加载",
+        "en_US": "FrameLoading"
       },
       "minimumSize": {
         "width": 330,
@@ -61,7 +63,7 @@
         {
           "width": 23,
           "height": 23,
-          "path": "icons/sdppp_D.png",
+          "path": "icons/frameloading-panel.png",
           "scale": [
             1,
             2
@@ -75,7 +77,7 @@
         {
           "width": 23,
           "height": 23,
-          "path": "icons/sdppp_L.png",
+          "path": "icons/frameloading-panel.png",
           "scale": [
             1,
             2
@@ -92,7 +94,7 @@
     {
       "width": 23,
       "height": 23,
-      "path": "icons/sdppp_D.png",
+      "path": "icons/frameloading-panel.png",
       "scale": [
         1,
         2
@@ -107,9 +109,9 @@
       ]
     },
     {
-      "width": 48,
-      "height": 48,
-      "path": "icons/sdppp_L.png",
+      "width": 23,
+      "height": 23,
+      "path": "icons/frameloading-panel.png",
       "scale": [
         1,
         2
