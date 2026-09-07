@@ -25,6 +25,14 @@ async function packagePSCCX() {
     
     // 宿主壳和 SDK 缺失时阻止交付仅包含 React bundle 的无效安装包。
     const manifest = JSON.parse(await readFile(join(pluginDir, 'manifest.json'), 'utf8'));
+    // Photoshop 会因下划线语言标记拒绝整个插件，打包前拦截此类配置。
+    for (const entrypoint of manifest.entrypoints ?? []) {
+      for (const locale of Object.keys(entrypoint.label ?? {})) {
+        if (locale.includes('_')) {
+          throw new Error(`Photoshop 面板 ${entrypoint.id} 的语言标记无效: ${locale}，请使用 default 或连字符语言标记`);
+        }
+      }
+    }
     for (const relative of ['run.js', manifest.main, 'webview/content.html', 'webview/content.js', 'webview/sdppp-ps-sdk-chunk.js']) {
       if (!relative || !(await stat(join(pluginDir, relative))).isFile()) {
         throw new Error(`Photoshop 安装包缺少必需文件: ${relative}`);

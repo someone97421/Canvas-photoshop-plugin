@@ -1,7 +1,7 @@
 {
   "id": "sd-ppp2-dev",
   "name": "逐帧加载 FrameLoading",
-  "version": "2.0.26",
+  "version": "2.0.27",
   "main": "sdppp/photoshop.html",
   "manifestVersion": 5,
   "host": {
@@ -39,9 +39,7 @@
       "type": "panel",
       "id": "sd-ppp",
       "label": {
-        "default": "FrameLoading",
-        "zh_CN": "逐帧加载",
-        "en_US": "FrameLoading"
+        "default": "逐帧加载 FrameLoading"
       },
       "minimumSize": {
         "width": 330,
