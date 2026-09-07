@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const hostPath = resolve(scriptDir, '../packages/sdppp-photoshop/plugin/sdppp/photoshop.html');
-const marker = '<!-- canvas-host-customized-v9 -->';
+const marker = '<!-- canvas-host-customized-v10 -->';
+const iconPreviousMarker = '<!-- canvas-host-customized-v9 -->';
 const brandPreviousMarker = '<!-- canvas-host-customized-v8 -->';
 const previousMarker = '<!-- canvas-host-customized-v7 -->';
 
@@ -32,11 +33,18 @@ export async function customizePhotoshopHost() {
   let html = await readFile(hostPath, 'utf8');
   if (html.includes(marker)) return;
 
+  if (html.includes(iconPreviousMarker)) {
+    html = replaceHeaderIcon(html).replace(iconPreviousMarker, marker);
+    await writeFile(hostPath, html);
+    return;
+  }
+
   if (html.includes(previousMarker) || html.includes(brandPreviousMarker)) {
     html = addSettingsButton(html)
       .replace("'children':'这是一个画布'})", "'children':'逐帧加载 FrameLoading'})")
       .replace(previousMarker, marker)
       .replace(brandPreviousMarker, marker);
+    html = replaceHeaderIcon(html);
     await writeFile(hostPath, html);
     return;
   }
@@ -63,7 +71,19 @@ export async function customizePhotoshopHost() {
 
   html = html.replace('<head>', `<head>\n${marker}`);
   html = addSettingsButton(html);
+  html = replaceHeaderIcon(html);
   await writeFile(hostPath, html);
+}
+
+function replaceHeaderIcon(html) {
+  const headerStart = html.indexOf('function Header(){');
+  const headerEnd = html.indexOf('const sdkNode', headerStart);
+  if (headerStart < 0 || headerEnd < 0) throw new Error('无法应用 Photoshop 宿主定制：品牌图标 Header');
+  const header = html.slice(headerStart, headerEnd);
+  const previousIcon = "jsxRuntimeExports[_0x944c83(0x1f4f)](_0x944c83(0x16f5),{'width':0x37,'src':_0x4b04bb==_0x944c83(0x243e)||_0x4b04bb=='kPanelBrightnessMediumGray'?_0x944c83(0x13c):_0x944c83(0x4ee),'alt':_0x944c83(0x10cd),'className':_0x944c83(0x1634)})";
+  const brandIcon = "jsxRuntimeExports['jsx']('img',{'src':'../icons/frameloading-logo.png','alt':'逐帧加载 FrameLoading','width':28,'height':28,'style':{'width':'28px','height':'28px','objectFit':'contain','flexShrink':0}})";
+  if (!header.includes(previousIcon)) throw new Error('无法应用 Photoshop 宿主定制：顶部品牌图标');
+  return html.slice(0, headerStart) + header.replace(previousIcon, brandIcon) + html.slice(headerEnd);
 }
 
 function addSettingsButton(html) {
